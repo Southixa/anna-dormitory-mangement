@@ -7,7 +7,8 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@nuxtjs/google-fonts',
     '@bg-dev/nuxt-naiveui',
-    '@nuxtjs/apollo'
+    '@nuxtjs/apollo',
+    'nuxt-icon'
   ],
   googleFonts: {
     families: {
@@ -45,7 +46,6 @@ export default defineNuxtConfig({
         wsEndpoint: '',
         httpLinkOptions: {},
         wsLinkOptions: {},
-        wsEndpoint: '',
         websocketsOnly: false,
         connectToDevTools: false,
         defaultOptions: {},
@@ -56,5 +56,8 @@ export default defineNuxtConfig({
         authHeader: 'Authorization'
       },
     }
+  },
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' }
   }
 })

@@ -56,6 +56,10 @@
 
 <script setup>
 
+definePageMeta({
+  layout: 'blank'
+})
+
 import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 
@@ -64,8 +68,8 @@ const message = useMessage();
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    email: "",
-    password: "",
+    email: "southixa.pele10@gmail.com",
+    password: "pele374110",
 })
 
 const rules = {
@@ -90,21 +94,38 @@ const rules = {
 
 const loading = ref(false);
 
+const cookie = useCookie('token')
 
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     try{
-        formRef.value?.validate((errors) => {
+        const warining = await formRef.value?.validate( async (errors) => {
             if(!errors) {
                 loading.value = true;
+                try {
+                    const respon = await $fetch('https://blpbkifrpjcudrpgmsea.auth.ap-southeast-1.nhost.run/v1/signin/email-password', {
+                        method: 'POST',
+                        body: formValue.value
+                    })
+                    if(respon?.session) {
+                        cookie.value = respon.session.accessToken;
+                        loading.value = false;
+                        message.success("ເຂົ້າສູ່ລະບົບສຳເລັດ")
+                        await navigateTo({ path: '/dashboard' });
+                        return;
+                    }
+                } catch (error) {
+                    console.log("error occured when try to send request login");
+                    loading.value = false;
+                    message.error("ຂໍ້ມູນບໍ່ຖືກຕ້ອງ")
+                }
             } else {
                 message.error("ກະລຸນາ ໃສ່ຂໍ້ມູນ")
             }
         });
     } catch (error) {
-
+        console.log("error occured in handleLogin method => ", error);
     }
-    console.log("called handle Login");
 }
 
 
