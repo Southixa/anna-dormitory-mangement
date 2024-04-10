@@ -60,32 +60,33 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="bg-white border-b border-gray-100" v-for="i in 5" :key="i">
+                        <tr class="bg-white border-b border-gray-100" v-for="(stuff, index) in stuffData" :key="stuff.id">
                             <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap ">
-                                1
+                                {{ index+1 }}
                             </th>
                             <td class="px-6 py-2">
-                                <div class="w-14 h-14 bg-gray-400 rounded-full">
-
+                                <div class="w-14 h-14 border border-gray-100 rounded-full">
+                                    <img v-if="stuff.staff_profile_url" :src="stuff.staff_profile_url" alt="" class="w-full h-full object-cover rounded-full">
+                                    <n-skeleton v-else circle class="w-full h-full" />
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                southixa
+                                {{ stuff.staff_firstname }}
                             </td>
                             <td class="px-6 py-4">
-                                philavong
+                                {{ stuff.staff_lastname }}
                             </td>
                             <td class="px-6 py-4">
-                                552342342
+                                {{ stuff.staff_phone }}
                             </td>
                             <td class="px-6 py-4">
-                                southixa.pele10@gmail.com
+                                {{ stuff.staff_email }}
                             </td>
                             <td class="px-6 py-4">
-                                123456789
+                                {{ stuff.staff_password }}
                             </td>
                             <td class="px-6 py-4">
-                                ແອດມິນ
+                                {{ mappingRole(stuff.staff_role) }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
@@ -120,6 +121,7 @@ import { Trash as TrashIcon } from "@vicons/fa";
 import { DoneFilled, EditFilled as EditIcon } from '@vicons/material';
 import { NIcon } from "naive-ui";
 
+const { client } = useApolloClient();
 
 const searchText = ref('');
 const selectValue= ref("ທັງໝົດ")
@@ -142,5 +144,81 @@ const page = ref(1);
 
 const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
+
+
+const stuffQuery = gql`
+  query stuff($limit: Int){
+        staff(limit: $limit) {
+            staff_id
+            staff_profile
+            staff_firstname
+            staff_lastname
+            staff_phone
+            staff_email
+            staff_password
+            staff_role
+        }
+    }
+`;
+
+const stuffData = ref([]);
+
+async function loadData() {
+    try {
+        const { data, error } = await client.query({
+            query: stuffQuery,
+            variables: {
+                limit: 10
+            }
+        })
+        stuffData.value = data.staff;
+        if(data) {
+            let staffList = {};
+            let arrStaff = [];
+            Object.assign(staffList, JSON.parse(JSON.stringify(data.staff)));
+            for (const [key, value] of Object.entries(staffList)) {
+                value.staff_profile_url = await loadImageFormId(value.staff_profile);
+                arrStaff.push(value);
+            }
+            stuffData.value = arrStaff;
+
+        }
+    } catch (error) { 
+        console.log("error accoured while loading data => here ", error);
+    }
+
+}
+
+function mappingRole(role) {
+    const mapping = {
+        'admin': 'ແອັດມິນ',
+        'stuff': 'ຜູ້ຊ່ວຍແອດມິນ'
+    }
+    return mapping[role]
+}
+
+loadData();
+
+const token = useCookie("token");
+
+async function loadImageFormId (id) {
+    try {
+        const respon = await $fetch(`https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files/${id}/presignedurl`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token.value}`
+            }
+        })
+        if(respon) {
+            return respon.url;
+        } else {
+            return "";
+        }
+    } catch (error) {
+        console.log("error accoured while load image form id => ", error);
+        return "";
+    }
+}
+
 
 </script>

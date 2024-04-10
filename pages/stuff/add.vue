@@ -291,6 +291,8 @@ async function handleUpdateFile() {
             body: formData
         })
         if(respon) {
+            console.log(respon);
+            console.log(token.value);
             return respon.id;
         }
     } catch (error) {
