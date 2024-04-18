@@ -11,6 +11,7 @@
                         directory-dnd
                         action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
                         :max="1"
+                        :file-list="uploadFileInfo"
                         @change="handleSelectFile"
                         :default-upload="false"
                         accept="image/*"
@@ -262,7 +263,13 @@ async function handleAdd() {
 const previewImage = ref(null);
 const imageUpload = ref(null);
 
+
+const uploadFileInfo = ref([
+]);
 function handleSelectFile(data) {
+    console.log("uploadFileInfo =>");
+    console.log(uploadFileInfo.value);
+    console.log(data);
     const file = data.file.file;
     const fileMb = file.size / 1024 ** 2;
     if(fileMb > 3) {
@@ -282,6 +289,13 @@ function handleSelectFile(data) {
         previewImage.value = null;
         imageUpload.value = null;
     }
+
+    // might delete later
+    console.log(imageUpload.value);
+    console.log(previewImage.value);
+
+    console.log("uploadFileInfo 2 =>");
+    console.log(uploadFileInfo.value);
 }
 
 
@@ -313,6 +327,95 @@ async function handleUpdateFile() {
     }
 }
 
+const staffQuery = gql`
+    query staff($id: uuid!) {
+        staff_by_pk(staff_id: $id) {
+            staff_id
+            staff_profile
+            staff_firstname
+            staff_lastname
+            staff_phone
+            staff_email
+            staff_password
+            staff_role
+        }
+    }
+`
+
+// get params from route
+const { id } = useRoute().params;
+
+
+async function loadData() {
+    try {
+        const { data, error } = await client.query({
+            query: staffQuery,
+            variables: {
+                id: id
+            }
+        })
+        if(data) {
+            //const staff = data.staff_by_pk;
+            console.log('staff Profile id => ', data.staff_by_pk.staff_profile);
+            const staffProfile = await loadImageFormId(id);
+            // formValue.value = {
+            //     profile: staffProfile,
+            //     firstname: staff.staff_firstname,
+            //     lastname: staff.staff_lastname,
+            //     phone: staff.staff_phone,
+            //     email: staff.staff_email,
+            //     password: staff.staff_password,
+            //     role: staff.staff_role
+            // }
+            // //formValue.value = data.staff;
+            // console.log(formValue.value);
+        }
+    } catch (error) {
+        console.log("error accoured while loading data => here ", error);
+    }
+}
+
+loadData();
+
+
+const token = useCookie("token");
+
+async function loadImageFormId (id) {
+    console.log(token.value);
+    console.log(id);
+    try {
+        const respon = await $fetch(`https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files/2e57ed4f-c9ed-4299-9892-5ebd78b2a1a4/presignedurl/content?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIASMFSI6OTPV4PO7GY%2F20240418%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Date=20240418T042650Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&x-id=GetObject&X-Amz-Signature=5bcdd008af5a66ec647353cc8445dd0ec56dd3c849915fcf23031b47034232f0`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token.value}`
+            }
+        })
+        const file = new File([respon], "name");
+        imageUpload.value = file;
+        console.log(file);
+        //previewImage.value = URL.createObjectURL(file);
+
+        console.log(respon);
+        // if(respon) {
+        //     return respon.url;
+        // } else {
+        //     return "";
+        // }
+    } catch (error) {
+        console.log("error accoured while load image form id => ", error);
+        return "";
+    }
+}
+
+// function setImage (data) {
+//     console.log("calling set image => ", data);
+//     console.log(data);
+// }
+
+function callingData(file) {
+    console.log("callingdata Function");
+    console.log(file);
+}
 
 
 </script>

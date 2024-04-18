@@ -25,7 +25,7 @@
                     </NuxtLink>
                 </div>
             </div>
-            <p class="text-gray-800 mt-4">ລາຍການທັງໝົດ <span class="font-medium text-gray-900">42</span> ລາຍການ</p>
+            <p class="text-gray-800 mt-4">ລາຍການທັງໝົດ <span class="font-medium text-gray-900">{{ totalListCount }}</span> ລາຍການ</p>
             <div class="relative overflow-x-auto mt-2 min-h-[500px]">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500">
                     <thead class="text-xs text-gray-500 uppercase bg-gray-50 rounded-t-xl">
@@ -66,7 +66,12 @@
                             </th>
                             <td class="px-6 py-2">
                                 <div class="w-14 h-14 border border-gray-100 rounded-full">
-                                    <img v-if="stuff.staff_profile_url" :src="stuff.staff_profile_url" alt="" class="w-full h-full object-cover rounded-full">
+                                    <n-image
+                                        v-if="stuff.staff_profile_url"
+                                        :src="stuff.staff_profile_url"
+                                        class="w-full h-full object-cover rounded-full"
+                                    />
+                                    
                                     <n-skeleton v-else circle class="w-full h-full" />
                                 </div>
                             </td>
@@ -90,24 +95,34 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <n-button class="w-9 h-9 text-gray-500">
-                                        <template #icon>
-                                            <n-icon size="22"><edit-icon class="text-gray-500"/></n-icon>
+                                    <NuxtLink :to=" '/stuff/' + stuff.staff_id">
+                                        <n-button class="w-9 h-9 text-gray-500">
+                                            <template #icon>
+                                                <n-icon size="22"><edit-icon class="text-gray-500"/></n-icon>
+                                            </template>
+                                        </n-button>
+                                    </NuxtLink>
+                                    <n-popconfirm :show-icon="false" positive-text="ຢືນຍັນ" negative-text="ຍົກເລີກ" @positive-click="handleDelete(stuff.staff_id)">
+                                        <template #activator>
+                                            <n-button class="w-9 h-9 text-gray-500 group">
+                                                <template #icon>
+                                                    <n-icon size="18"><trash-icon class="group-hover:text-red-500 text-gray-500"/></n-icon>
+                                                </template>
+                                            </n-button>
                                         </template>
-                                    </n-button>
-                                    <n-button class="w-9 h-9 text-gray-500 group">
-                                        <template #icon>
-                                            <n-icon size="18"><trash-icon class="group-hover:text-red-500 text-gray-500"/></n-icon>
-                                        </template>
-                                    </n-button>
+                                        ທ່ານຕ້ອງການລົບຂໍ້ມູນແທ້ຫຼືບໍ່?
+                                    </n-popconfirm>
                                 </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                <div v-if="stuffData.length == 0" class="flex justify-center items-center w-full mt-10">
+                        <n-spin size="large" />
+                </div>
             </div>
-            <div class="flex justify-center mt-20">
-                <n-pagination v-model:page="page" :page-count="12" size="large" disabled/>
+            <div v-if="totalListCount > 10" class="flex justify-center mt-20">
+                <n-pagination v-model:page="page" :page-count="totalPage" size="large"  v-on:update:page="changePage"/>
             </div>
         </div>
     </div>
@@ -120,6 +135,10 @@ import { Add } from "@vicons/ionicons5";
 import { Trash as TrashIcon } from "@vicons/fa";
 import { DoneFilled, EditFilled as EditIcon } from '@vicons/material';
 import { NIcon } from "naive-ui";
+
+import { useMessage } from 'naive-ui';
+
+const message = useMessage();
 
 const { client } = useApolloClient();
 
@@ -140,35 +159,34 @@ const options =  ref([
     },
 ]);
 
-const page = ref(1);
-
 const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
 
 const stuffQuery = gql`
-  query stuff($limit: Int){
-        staff(limit: $limit) {
-            staff_id
-            staff_profile
-            staff_firstname
-            staff_lastname
-            staff_phone
-            staff_email
-            staff_password
-            staff_role
-        }
+  query stuff($offset: Int, $limit: Int) {
+    staff(offset: $offset, limit: $limit) {
+        staff_id
+        staff_firstname
+        staff_lastname
+        staff_email
+        staff_phone
+        staff_password
+        staff_profile
+        staff_role
+    }
     }
 `;
 
 const stuffData = ref([]);
 
-async function loadData() {
+async function loadData(offset = 0, limit = 10) {
     try {
         const { data, error } = await client.query({
             query: stuffQuery,
             variables: {
-                limit: 10
+                offset: offset,
+                limit: limit
             }
         })
         stuffData.value = data.staff;
@@ -220,5 +238,72 @@ async function loadImageFormId (id) {
     }
 }
 
+
+const totalListCount = ref(0);
+
+const totalListQuery = gql`
+  {
+  staff_aggregate {
+    aggregate {
+      count(columns: staff_id)
+    }
+  }
+}
+`;
+
+const page = ref(1);
+const totalPage = ref(0);
+
+async function loadTotalListCount() {
+    try {
+        const { data, error } = await client.query({
+            query: totalListQuery
+        })
+        if(data) {
+            totalListCount.value = data.staff_aggregate.aggregate.count;
+            totalPage.value = Math.ceil(totalListCount.value / 10);
+        }
+    } catch (error) {
+        console.log("error accoured while load total list count => ", error);
+    }
+}
+
+
+loadTotalListCount();
+
+
+const changePage = async (pageNumber) => {
+    let offset = (pageNumber - 1) * 10;
+    let limit = 10;
+    await loadData(offset, limit);
+}
+
+
+const deleteQuery = gql`
+  mutation deleteStaff ($id: uuid!){
+  delete_staff_by_pk(staff_id: $id) {
+    staff_id
+  }
+}
+`;
+
+async function handleDelete(id) {
+    try {
+        const { data, error } = await client.mutate({
+            mutation: deleteQuery,
+            variables: {
+                id: id
+            }
+        })
+        if(data) {
+            console.log("delete success");
+            message.success("ລົບຂໍ້ມູນສຳເລັດ")
+            stuffData.value = stuffData.value.filter((item) => item.staff_id !== id);
+            totalListCount.value = totalListCount.value - 1;
+        }
+    } catch (error) {
+        console.log("error accoured while delete stuff => ", error);
+    }
+}
 
 </script>

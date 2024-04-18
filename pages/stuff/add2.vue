@@ -4,12 +4,10 @@
             <p class="text-sm">ຮູບພາບ</p>
             <p class="text-gray-500">ອັບໂຫຼດຮູບພາບຂະໝາດ 2:1 ຫຼື 640px x 360px</p>
             <div class="mb-8 mt-8 flex justify-center items-center">
-                <div>
+                <div class="flex flex-col justify-center items-center">
                     <n-image v-if="previewImage" :src="previewImage" class="w-60 h-60 rounded-full object-cover"/>
                     <n-upload
-                        multiple
                         directory-dnd
-                        action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
                         :max="1"
                         @change="handleSelectFile"
                         :default-upload="false"
@@ -113,10 +111,17 @@
 import { ArchiveOutline as ArchiveIcon } from "@vicons/ionicons5";
 import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
+import Rules from '../../utils/rule/index.js';
+import Models from '../../model/index.js';
+
+
+
 
 const { client } = useApolloClient();
 
 const message = useMessage();
+
+const uploadFile = useUpload();
 
 const formRef = ref(null);
 const size = ref('large');
@@ -128,60 +133,6 @@ const formValue = ref({
     password: "123456",
     role: "admin"
 })
-
-const rules = {
-  firstname: {
-    required: true,
-    message: 'ກະລຸນາໃສ່ຊື່',
-    trigger: ['blur']
-  },
-  lastname: {
-    required: true,
-    message: 'ກະລຸນາໃສ່ນາມສະກຸນ',
-    trigger: ['blur']
-  },
-  phone: {
-    required: true,
-    validator (rule, value) {
-        if (!value) {
-            return new Error('ກະລຸນາໃສ່ເບີໂທ')
-        } else if (!/^\d*$/.test(value)) {
-            return new Error('ເບີໂທຄວນເປັນຕົວເລກເທົ່ານັ້ນ')
-        }
-        return true
-        },
-        trigger: ['blur']
-  },
-  email: {
-    required: true,
-    validator(rule, value) {
-        if(!value) {
-            return new Error("ກະລຸນາໃສ່ອີເມລ")
-        } else if (!(/@gmail.com/i.test(value))){
-            return new Error("ກະລຸນາໃສ່ @gmail.com")
-        }
-        return true
-    },
-    trigger: ['blur']
-  },
-  password: {
-    required: true,
-    validator(rule, value) {
-        if(!value) {
-            return new Error("ກະລຸນາໃສ່ລະຫັດຜ່ານ")
-        } else if (value.length <= 4){
-            return new Error("ລະຫັດຜ່ານຕ້ອງຫຼາຍກວ່າ 4 ຕົວອັກສອນ")
-        }
-        return true
-    },
-    trigger: ['blur']
-  },
-  role: {
-    required: true,
-    message: 'ກະລຸນາເລືອກສິດນຳໃຊ້ລະບົບ',
-    trigger: 'blur',
-  },
-};
 
 const roleOptions =  ref([
     {
@@ -197,67 +148,66 @@ const roleOptions =  ref([
 const loading = ref(false);
 
 
-
-
-const insertQuery = gql`
-    mutation insertStuff($object: staff_insert_input!) {
-        staff: insert_staff_one(object: $object) {
-            staff_id
-            staff_profile
-            staff_firstname
-            staff_lastname
-            staff_phone
-            staff_email
-            staff_password
-            staff_role
-        }
-    }
-`
+const rules = Rules.Staff;
 
 
 
 async function handleAdd() {
-    try{
-        const warining = await formRef.value?.validate( async (errors) => {
-            if(!errors) {
-                loading.value = true;
-                try{
-                    const uploadFileId = await handleUpdateFile();
-                    if(uploadFileId === undefined) {
-                        loading.value = false;
-                        return;
-                    }
-                    const { data, error } =  await client.mutate({
-                        mutation: insertQuery,
-                        variables: {
-                            object: {
-                                staff_profile: uploadFileId,
-                                staff_firstname: formValue.value.firstname,
-                                staff_lastname: formValue.value.lastname,
-                                staff_phone: formValue.value.phone,
-                                staff_email: formValue.value.email,
-                                staff_password: formValue.value.password,
-                                staff_role: formValue.value.role
-                            }
-                        }
-                    })
-                    if(data) {
-                        message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
-                        loading.value = false;
-                    }
-                } catch (error) {
-                    message.error("ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກຂໍ້ມູນ")
-                    console.log("error accured in handle add when try to insert => ", error);
-                    loading.value = false;
+    try {
+
+        //1. check validate input
+        const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
+        if(invalidField.length > 0) {
+            message.error("ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຖືກຕ້ອງ")
+            throw new Error('invalid input => ' + invalidField);
+        }
+
+        //2. check image is selected
+        if(!imageUpload.value){
+            message.error("ກະລຸນາອັບໂຫຼດຮູບພາບ")
+            throw new Error('no image selected');
+        }
+
+        //3. disable all input
+        loading.value = true;
+
+        //4. insert image
+        const imageId = await uploadFile.handleUploadFile(imageUpload.value);
+        if(!imageId) {
+            message.error("ບໍ່ສາມາດອັບໂຫຼດຮູບາບໄດ້")
+            throw new Error('cannot upload image');
+        }
+
+        //5. insert input
+        const res =  await client.mutate({
+            mutation: Models.Staff.insert,
+            variables: {
+                object: {
+                    staff_profile: imageId,
+                    staff_firstname: formValue.value.firstname,
+                    staff_lastname: formValue.value.lastname,
+                    staff_phone: formValue.value.phone,
+                    staff_email: formValue.value.email,
+                    staff_password: formValue.value.password,
+                    staff_role: formValue.value.role
                 }
-            } else {
-                message.error("ບໍ່ສາມາດບັນທຶກຂໍ້ມູນນີ້ໄດ້")
             }
-        });
+        }).catch(async (error)=>{return error});
+        if(!res?.data) {
+            message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
+            throw new Error('cannot save data => ' + res);
+        }
+
+        //6. success
+        message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
+        loading.value = false;
+
     } catch (error) {
-        console.log("error accured in handle add => ", error);
+        console.log("error occured in handleAdd => " + error);
+        loading.value = false;
     }
 }
+
 
 const previewImage = ref(null);
 const imageUpload = ref(null);
@@ -284,34 +234,6 @@ function handleSelectFile(data) {
     }
 }
 
-
-
-async function handleUpdateFile() {
-    if(imageUpload.value == null) {
-        message.error("ກະລຸນາອັບໂຫຼດຮູບພາບ");
-        return;
-    }
-    const token = useCookie("token");
-    const formData = new FormData();
-    formData.append("file", imageUpload.value);
-    try {
-        const respon = await $fetch('https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token.value}`
-            },
-            body: formData
-        })
-        if(respon) {
-            console.log(respon);
-            console.log(token.value);
-            return respon.id;
-        }
-    } catch (error) {
-        console.log("error occured when try to upload file to nhost => ", error);
-        return "";
-    }
-}
 
 
 

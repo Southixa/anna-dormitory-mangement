@@ -28,10 +28,11 @@
 const themeOverrides = {
     common: {
       primaryColor: '#002749',
+      primaryColorHover: '#2B4257'
     },
     Input: {
     borderHover: `1px solid #002749`,
-    borderFocus: `1px solid #002749`
+    borderFocus: `1px solid #002749`,
   },
     Button: {
       textColor: '#002749',
