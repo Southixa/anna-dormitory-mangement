@@ -5,7 +5,7 @@
             <p class="text-gray-500">ອັບໂຫຼດຮູບພາບຂະໝາດ 2:1 ຫຼື 640px x 360px</p>
             <div class="mb-8 mt-8 flex justify-center items-center">
                 <div class="flex flex-col justify-center items-center">
-                    <n-image v-if="previewImage" :src="previewImage" class="w-60 h-60 rounded-full object-cover"/>
+                    <n-image v-if="previewImage" :src="previewImage" class="w-60 h-60 rounded-full" object-fit="cover" width="100%" height="100%"/>
                     <n-upload
                         directory-dnd
                         :max="1"
@@ -92,7 +92,7 @@
             </n-form>
 
             <div class="flex justify-center gap-4 mt-14 mb-4">
-                <NuxtLink to="/stuff">
+                <NuxtLink to="/staff">
                     <n-button :disabled="loading" tertiary color="#002749" size="large" class="w-40 shadow font-normal">
                         ຍົກເລີກ
                     </n-button>
@@ -126,7 +126,7 @@ const uploadFile = useUpload();
 const formRef = ref(null);
 const size = ref('large');
 const formValue = ref({
-    firstname: "southixa",
+    firstname: "0",
     lastname: "philavong",
     phone: "55847493",
     email: "southixa.pele10@gmail.com",
@@ -141,7 +141,7 @@ const roleOptions =  ref([
     },
     {
         label: 'ຜູ້ຊ່ວຍແອດມິນ',
-        value: 'stuff'
+        value: 'staff'
     },
 ]);
 
@@ -154,7 +154,7 @@ const rules = Rules.Staff;
 
 async function handleAdd() {
     try {
-
+        formValue.value.firstname = (Number(formValue.value.firstname) + 1) + "";
         //1. check validate input
         const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
         if(invalidField.length > 0) {

@@ -48,7 +48,14 @@ export default defineNuxtConfig({
         wsLinkOptions: {},
         websocketsOnly: false,
         connectToDevTools: false,
-        defaultOptions: {},
+        defaultOptions: {
+          watchQuery: {
+            fetchPolicy: 'no-cache',
+          },
+          query: {
+            fetchPolicy: 'no-cache',
+          },
+        },
         inMemoryCacheOptions: {},
         tokenName: 'token',
         tokenStorage: 'cookie',

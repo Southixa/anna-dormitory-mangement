@@ -94,7 +94,7 @@
             </n-form>
 
             <div class="flex justify-center gap-4 mt-14 mb-4">
-                <NuxtLink to="/stuff">
+                <NuxtLink to="/staff">
                     <n-button :disabled="loading" tertiary color="#002749" size="large" class="w-40 shadow font-normal">
                         ຍົກເລີກ
                     </n-button>
@@ -190,7 +190,7 @@ const roleOptions =  ref([
     },
     {
         label: 'ຜູ້ຊ່ວຍແອດມິນ',
-        value: 'stuff'
+        value: 'staff'
     },
 ]);
 
@@ -200,7 +200,7 @@ const loading = ref(false);
 
 
 const insertQuery = gql`
-    mutation insertStuff($object: staff_insert_input!) {
+    mutation insertStaff($object: staff_insert_input!) {
         staff: insert_staff_one(object: $object) {
             staff_id
             staff_profile

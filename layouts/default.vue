@@ -86,7 +86,7 @@ const navMenuList = [
     name: 'ຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ',
     icon: 'ph:student-fill',
     size: '24',
-    path: '/stuff',
+    path: '/staff',
     pageTitle: 'ຈັດການຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ'
   },
   {

@@ -14,9 +14,16 @@
                 <div>
                 </div>
                 <div>
+                    <NuxtLink to="/staff/staff2">
+                        <n-form-item label="" class="text-gray-800">
+                            <n-button type="primary" color="#002749" size="large" class="w-full shadow font-light" :render-icon="renderIconAdd">
+                                staff2
+                            </n-button>
+                        </n-form-item>
+                    </NuxtLink>
                 </div>
                 <div class="col-start-7">
-                    <NuxtLink to="/stuff/add">
+                    <NuxtLink to="/staff/add">
                         <n-form-item label="" class="text-gray-800">
                             <n-button type="primary" color="#002749" size="large" class="w-full shadow font-light" :render-icon="renderIconAdd">
                                 ເພີ່ມຜູ້ໃຊ້ງານລະບົບ
@@ -60,15 +67,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="bg-white border-b border-gray-100" v-for="(stuff, index) in stuffData" :key="stuff.id">
+                        <tr class="bg-white border-b border-gray-100" v-for="(staff, index) in staffData" :key="staff.id">
                             <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap ">
                                 {{ index+1 }}
                             </th>
                             <td class="px-6 py-2">
                                 <div class="w-14 h-14 border border-gray-100 rounded-full">
                                     <n-image
-                                        v-if="stuff.staff_profile_url"
-                                        :src="stuff.staff_profile_url"
+                                        v-if="staff.staff_profile_url"
+                                        :src="staff.staff_profile_url"
                                         class="w-full h-full object-cover rounded-full"
                                     />
                                     
@@ -76,33 +83,33 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                {{ stuff.staff_firstname }}
+                                {{ staff.staff_firstname }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ stuff.staff_lastname }}
+                                {{ staff.staff_lastname }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ stuff.staff_phone }}
+                                {{ staff.staff_phone }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ stuff.staff_email }}
+                                {{ staff.staff_email }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ stuff.staff_password }}
+                                {{ staff.staff_password }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ mappingRole(stuff.staff_role) }}
+                                {{ mappingRole(staff.staff_role) }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <NuxtLink :to=" '/stuff/' + stuff.staff_id">
+                                    <NuxtLink :to=" '/staff/' + staff.staff_id">
                                         <n-button class="w-9 h-9 text-gray-500">
                                             <template #icon>
                                                 <n-icon size="22"><edit-icon class="text-gray-500"/></n-icon>
                                             </template>
                                         </n-button>
                                     </NuxtLink>
-                                    <n-popconfirm :show-icon="false" positive-text="ຢືນຍັນ" negative-text="ຍົກເລີກ" @positive-click="handleDelete(stuff.staff_id)">
+                                    <n-popconfirm :show-icon="false" positive-text="ຢືນຍັນ" negative-text="ຍົກເລີກ" @positive-click="handleDelete(staff.staff_id)">
                                         <template #activator>
                                             <n-button class="w-9 h-9 text-gray-500 group">
                                                 <template #icon>
@@ -117,7 +124,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <div v-if="stuffData.length == 0" class="flex justify-center items-center w-full mt-10">
+                <div v-if="staffData.length == 0" class="flex justify-center items-center w-full mt-10">
                         <n-spin size="large" />
                 </div>
             </div>
@@ -163,8 +170,8 @@ const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
 
-const stuffQuery = gql`
-  query stuff($offset: Int, $limit: Int) {
+const staffQuery = gql`
+  query staff($offset: Int, $limit: Int) {
     staff(offset: $offset, limit: $limit) {
         staff_id
         staff_firstname
@@ -178,18 +185,18 @@ const stuffQuery = gql`
     }
 `;
 
-const stuffData = ref([]);
+const staffData = ref([]);
 
 async function loadData(offset = 0, limit = 10) {
     try {
         const { data, error } = await client.query({
-            query: stuffQuery,
+            query: staffQuery,
             variables: {
                 offset: offset,
                 limit: limit
             }
         })
-        stuffData.value = data.staff;
+        staffData.value = data.staff;
         if(data) {
             let staffList = {};
             let arrStaff = [];
@@ -198,7 +205,7 @@ async function loadData(offset = 0, limit = 10) {
                 value.staff_profile_url = await loadImageFormId(value.staff_profile);
                 arrStaff.push(value);
             }
-            stuffData.value = arrStaff;
+            staffData.value = arrStaff;
 
         }
     } catch (error) { 
@@ -210,7 +217,7 @@ async function loadData(offset = 0, limit = 10) {
 function mappingRole(role) {
     const mapping = {
         'admin': 'ແອັດມິນ',
-        'stuff': 'ຜູ້ຊ່ວຍແອດມິນ'
+        'staff': 'ຜູ້ຊ່ວຍແອດມິນ'
     }
     return mapping[role]
 }
@@ -298,11 +305,11 @@ async function handleDelete(id) {
         if(data) {
             console.log("delete success");
             message.success("ລົບຂໍ້ມູນສຳເລັດ")
-            stuffData.value = stuffData.value.filter((item) => item.staff_id !== id);
+            staffData.value = staffData.value.filter((item) => item.staff_id !== id);
             totalListCount.value = totalListCount.value - 1;
         }
     } catch (error) {
-        console.log("error accoured while delete stuff => ", error);
+        console.log("error accoured while delete staff => ", error);
     }
 }
 
