@@ -62,6 +62,8 @@ export const useStorage = () => {
                         'Authorization': `Bearer ${token.value}`
                     }
                 })
+                //resize image
+                respon.url = respon.url.replace("https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files", "https://ik.imagekit.io/hgpqliexx/tr:w-400,h-400")
                 if(respon) {
                     resolve(respon)
                 }
