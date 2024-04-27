@@ -68,8 +68,8 @@ const message = useMessage();
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    email: "southixa.pele10@gmail.com",
-    password: "pele374110",
+    email: "",
+    password: "",
 })
 
 const rules = {
