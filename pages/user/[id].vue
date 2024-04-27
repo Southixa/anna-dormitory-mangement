@@ -21,7 +21,7 @@
                 <div class=" w-full rounded-full flex justify-center items-center" v-for="(item) in userAvatarList" :key="item.id">
                     <div class="w-12 h-12 border border-gray-100 rounded-full">
                         <n-image
-                            :class="`${item.user_avatar == avatar.user_avatar ? 'border border-green-600' : 'opacity-50'}`"
+                            :class="`${item?.user_avatar == avatar?.user_avatar ? 'border border-green-600' : 'opacity-50'}`"
                             v-if="item.user_avatar_url"
                             :src="item.user_avatar_url"
                             class="w-full h-full rounded-full cursor-pointer"
@@ -101,7 +101,7 @@
                         ຍົກເລີກ
                     </n-button>
                 </NuxtLink>
-                <n-button @click="handleAdd" :loading="loading" type="primary" color="#002749" size="large" class="w-40 shadow font-normal">
+                <n-button @click="handleUpdate" :loading="loading" type="primary" color="#002749" size="large" class="w-40 shadow font-normal">
                     ບັນທຶກ
                 </n-button>
             </div>
@@ -123,6 +123,8 @@ const token = useCookie("token");
 const { client } = useApolloClient();
 const storage = useStorage();
 const join = useJoin();
+
+const { id } = useRoute().params;
 
 const userAvatarList = ref([]);
 const avatar = ref(null);
@@ -154,7 +156,7 @@ const statusOptions =  ref([
 const loading = ref(false);
 
 
-async function handleAdd() {
+async function handleUpdate() {
     try {
         //1. check validate input
         const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
@@ -172,10 +174,11 @@ async function handleAdd() {
         //3. disable all input
         loading.value = true;
 
-        //4. insert input
-        const resInsert =  await client.mutate({
-            mutation: Models.User.insert,
+        //4. update input
+        const resUpdate =  await client.mutate({
+            mutation: Models.User.update,
             variables: {
+                id: id,
                 object: {
                     user_avatar_id: avatar.value.user_avatar_id,
                     user_firstname: formValue.value.firstname,
@@ -187,17 +190,19 @@ async function handleAdd() {
                 }
             }
         }).catch(async (error)=>{return error});
-        if(!resInsert?.data) {
-            message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
-            throw new Error('cannot save data => ' + resInsert);
+        
+        
+        if(!resUpdate?.data) {
+            message.error("ອັບແດດຂໍ້ມູນບໍ່ສຳເລັດ")
+            throw new Error('cannot save data => ' + resUpdate);
         }
 
         //5. success
-        message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
+        message.success("ອັບແດດຂໍ້ມູນແລ້ວ")
         loading.value = false;
 
     } catch (error) {
-        console.log("error occured in handleAdd => " + error);
+        console.log("error occured in handleUpdate => " + error);
         loading.value = false;
     }
 }
@@ -221,6 +226,30 @@ const loadDataListWithImage = async (dataList, profileName) => {
     })
 }
 
+async function loadUserData () {
+    try {
+        const resUser = await client.query({
+            query: Models.User.getOne,
+            variables: {
+                id: id
+            }
+        })
+        const userData = resUser.data.user_tb_by_pk;
+        formValue.value.firstname = userData.user_firstname;
+        formValue.value.lastname = userData.user_lastname;
+        formValue.value.phone = userData.user_phone + "";
+        formValue.value.email = userData.user_email;
+        formValue.value.password = userData.user_password;
+        formValue.value.isApproved = userData.user_is_approved + "";
+        
+        const findAvatar = userAvatarList.value.find((item) => item.user_avatar_id == userData.user_avatar_id);
+        avatar.value = findAvatar;
+        
+    } catch (error) {
+        console.log("eroor occured in loadUserData => " + error);
+    }
+}
+
 
 async function loadData () {
     try {
@@ -232,8 +261,13 @@ async function loadData () {
 
         //2. load user avatar with image
         const resUserAvatarListWithImage = await loadDataListWithImage(resUserAvatarList.data.user_avatar, "user_avatar");
-        avatar.value = resUserAvatarListWithImage[0];
+        //avatar.value = resUserAvatarListWithImage[0];
         userAvatarList.value = resUserAvatarListWithImage
+
+        //3. load user data
+        loadUserData();
+        
+
     } catch (error) {
         console.log("eroor occured in loadData => " + error);
     }
