@@ -123,11 +123,9 @@ const { id } = useRoute().params;
 
 const { nhost } = useNhost();
 
-const { client } = useApolloClient();
 
 const message = useMessage();
 
-const uploadFile = useUpload();
 
 const fileList = ref([]);
 const formRef = ref(null);

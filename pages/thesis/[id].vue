@@ -1062,8 +1062,6 @@ import { computed, onMounted, watch } from "vue";
 
 
 
-const token = useCookie("token");
-const join = useJoin();
 
 const { id } = useRoute().params;
 
