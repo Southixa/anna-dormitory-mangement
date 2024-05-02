@@ -127,11 +127,9 @@ import Models from '../../model/index.js';
 
 const { nhost } = useNhost();
 
-const { client } = useApolloClient();
 
 const message = useMessage();
 
-const storage = useStorage();
 
 const { id } = useRoute().params;
 

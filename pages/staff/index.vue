@@ -149,9 +149,6 @@ import Models from '../../model/index.js';
 const { nhost } = useNhost();
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const deleteFile = useDelete();
 
 const totalListCount = ref(0);
 const totalPage = ref(0);
@@ -270,6 +267,10 @@ async function handleDelete(staff_id, users_id, profile_id) {
         const resFile = await nhost.storage.delete({ fileId: profile_id })
         if(resFile.error) {
             throw new Error(resFile.error);
+        }
+
+        if(totalListCount.value === 0 || staffData.value.length === 0) {
+            isEmpty.value = true;
         }
 
         message.success("ລົບຂໍ້ມູນສຳເລັດ");

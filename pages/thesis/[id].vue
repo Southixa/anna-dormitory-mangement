@@ -474,11 +474,8 @@ const { nhost } = useNhost();
 
 
 
-const { client } = useApolloClient();
-
 const message = useMessage();
 
-const storage = useStorage();
 
 const formRef = ref(null);
 const teacherFormRef = ref(null);
@@ -671,7 +668,6 @@ async function deletedOddThesis() {
         const fileId = formValue.value.fileId;
 
 
-        console.log("check thesis type for delete old => ", thesisType.value);
         if(thesisType.value == "ນັກສຶກສາ"){
             //1. get list of member list 
             const resMemberList = await nhost.graphql.request(
@@ -686,8 +682,6 @@ async function deletedOddThesis() {
 
                 `
             )
-            console.log("get old student meberlist list =>");
-            console.log(resMemberList);
             if(resMemberList.error) throw new Error("resMemberList error => " + resMemberList.error);
 
 
@@ -698,8 +692,6 @@ async function deletedOddThesis() {
                 const resMemberListDel = await nhost.graphql.request(Models.Thesis_student_member_list.delete, {
                     id: memberList[i].tsml_id
                 })
-                console.log("del student member list => ", [i]);
-                console.log(resMemberListDel);
                 if(resMemberListDel.error) console.log("unable to delete member list => ", resMemberListDel.error);
             }
 
@@ -710,20 +702,14 @@ async function deletedOddThesis() {
         const data = await nhost.graphql.request(Models.Thesis.delete, {
             id: id
         })
-        console.log("del old thesis =>");
-        console.log(data);
         if(data.error) throw new Error("data error to delete thesis => " + data.error);
 
 
-        console.log("is change file => ", isFileChange.value);
         if(isFileChange.value == true){
             const result = await await nhost.storage.delete({ fileId: fileId })
-            console.log("delete old file =>");
-            console.log(result);
             if(result.error) throw new Error("result error to delete file => " + result.error);
         }
 
-        console.log("done delted odd thesis");
 
 
     } catch (error) {
@@ -771,8 +757,6 @@ async function handleAddForStudent() {
                 throw new Error('cannot upload file');
             }
             fileId = resUpload.fileMetadata.id;
-            console.log("inser new file =>");
-            console.log(resUpload);
         }
 
 
@@ -802,8 +786,6 @@ async function handleAddForStudent() {
         )
 
 
-        console.log("insert thesis for student =>");
-        console.log(resThesis);
         if(resThesis.error) {
             message.error("ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້")
             throw new Error('cannot insert thesis');
@@ -822,8 +804,7 @@ async function handleAddForStudent() {
                     }
                 }
             )
-            console.log("inser thesis studemt member list =>");
-            console.log(resMember);
+
             if(resMember.error) {
                 throw new Error('cannot insert member');
             }
@@ -836,7 +817,6 @@ async function handleAddForStudent() {
         message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
         loading.value = false;
         
-        console.log("done update student");
         //await navigateTo({ path: '/thesis' });
         return;
 
@@ -889,8 +869,6 @@ async function handleAddForTeacher() {
                 throw new Error('cannot upload file');
             }
             fileId = resUpload.fileMetadata.id;
-            console.log("inser new file =>");
-            console.log(resUpload);
         }
 
 
@@ -921,8 +899,6 @@ async function handleAddForTeacher() {
         )
 
 
-        console.log("insert thesis for teacher =>");
-        console.log(resThesis);
         if(resThesis.error) {
             message.error("ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້")
             throw new Error('cannot insert thesis');
@@ -1002,8 +978,6 @@ async function handleAddForInstitute() {
                 throw new Error('cannot upload file');
             }
             fileId = resUpload.fileMetadata.id;
-            console.log("inser new file =>");
-            console.log(resUpload);
         }
 
 
@@ -1034,8 +1008,6 @@ async function handleAddForInstitute() {
         )
 
 
-        console.log("insert thesis for institute =>");
-        console.log(resThesis);
         if(resThesis.error) {
             message.error("ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້")
             throw new Error('cannot insert thesis');
@@ -1277,8 +1249,7 @@ async function handleSearch() {
 
         )
 
-        console.log("data when serach =>");
-        console.log(data);
+
         if(data.error) {
             throw new Error(data.error);
         }
@@ -1398,12 +1369,22 @@ watch(getMajor, () => {
     if(isLoadEditData.value) return;
     major.value = getMajor.value;
     disableFilterMajorAndDegree.value = true;
+
+    //clear dataListSelectd when change major or degree 
+    if(dataListSelectd.value.length > 0) {
+        dataListSelectd.value = [];
+    }
 });
 
 watch(getDegree, () => {
     if(isLoadEditData.value) return;
     degree.value = getDegree.value;
     disableFilterMajorAndDegree.value = true;
+
+    //clear dataListSelectd when change major or degree 
+    if(dataListSelectd.value.length > 0) {
+        dataListSelectd.value = [];
+    }
 });
 
 
@@ -1429,7 +1410,6 @@ async function loadSelectThesisType() {
             value: item.thesis_type_id,
         }))
         thesisTypeOptions.value = [...thesisTypeList];
-        console.log("done load thesis type");
 
     } catch (error) {
         console.log("error accoured while load select thesis type => ", error);
@@ -1449,7 +1429,6 @@ async function loadSelectMajor() {
             value: item.major_id,
         }))
         majorOptions.value = [...majorList];
-        console.log("done load major type");
 
     } catch (error) {
         console.log("error accoured while load select major => ", error);
@@ -1469,7 +1448,6 @@ async function loadSelectDegree() {
             value: item.degree_type_id,
         }))
         degreeOptions.value = [...degreeList];
-        console.log("done load degree type");
 
     } catch (error) {
         console.log("error accoured while load select degree => ", error);
@@ -1521,9 +1499,8 @@ const fetchId = async (id) => {
     return publicUrl;
 }
 
-const loadDataListWithImage = async (dataList, profileName) => {
-    return new Promise(async(resolve, reject) => {
-        try {
+async function loadDataListWithImage(dataList, profileName) {
+    try {
             let fecthArray = []
             for(let i = 0; i < dataList.length; i++) {
                 fecthArray.push(fetchId(dataList[i][profileName]))
@@ -1533,13 +1510,12 @@ const loadDataListWithImage = async (dataList, profileName) => {
             dataList.forEach((item, index) => {
                 item[`${profileName}_url`] = data[index].presignedUrl.url
             })
-            resolve("done")
         } catch (error) {
             console.log("error accoured while loading data list with image => ", error);
-            reject(error);
         }
-    })
 }
+
+
 
 
 
@@ -1602,7 +1578,6 @@ async function loadThesis() {
         teacherFormValue.value.teacherFullName2 = thesisData.thesis_author_2;
         teacherFormValue.value.teacherFullName3 = thesisData.thesis_author_3;
 
-        console.log("almost load done");
 
         const thesisType = thesisData.thesis_type.thesis_type_name;
 
@@ -1629,10 +1604,8 @@ async function loadThesis() {
             }
 
             const memberList = resMemberList.data.thesis_student_member_list;
-            console.log(memberList);
 
             const selectedStudentList = [];
-            console.log(dataList.value);
 
             //3. loop add member list
             for(let i = 0; i < memberList.length; i++) {

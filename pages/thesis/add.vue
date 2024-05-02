@@ -1185,11 +1185,21 @@ const getDegree = computed(() => formValue.value.degree);
 watch(getMajor, () => {
     major.value = getMajor.value;
     disableFilterMajorAndDegree.value = true;
+
+    //clear dataListSelectd when change major or degree 
+    if(dataListSelectd.value.length > 0) {
+        dataListSelectd.value = [];
+    }
 });
 
 watch(getDegree, () => {
     degree.value = getDegree.value;
     disableFilterMajorAndDegree.value = true;
+
+    //clear dataListSelectd when change major or degree 
+    if(dataListSelectd.value.length > 0) {
+        dataListSelectd.value = [];
+    }
 });
 
 
@@ -1217,7 +1227,6 @@ async function loadSelectThesisType() {
             value: item.thesis_type_id,
         }))
         thesisTypeOptions.value = [...thesisTypeList];
-        console.log("done load thesis type");
 
     } catch (error) {
         console.log("error accoured while load select thesis type => ", error);
@@ -1237,7 +1246,6 @@ async function loadSelectMajor() {
             value: item.major_id,
         }))
         majorOptions.value = [...majorList];
-        console.log("done load major type");
 
     } catch (error) {
         console.log("error accoured while load select major => ", error);
@@ -1257,7 +1265,6 @@ async function loadSelectDegree() {
             value: item.degree_type_id,
         }))
         degreeOptions.value = [...degreeList];
-        console.log("done load degree type");
 
     } catch (error) {
         console.log("error accoured while load select degree => ", error);
@@ -1309,9 +1316,8 @@ const fetchId = async (id) => {
     return publicUrl;
 }
 
-const loadDataListWithImage = async (dataList, profileName) => {
-    return new Promise(async(resolve, reject) => {
-        try {
+async function loadDataListWithImage (dataList, profileName) {
+    try {
             let fecthArray = []
             for(let i = 0; i < dataList.length; i++) {
                 fecthArray.push(fetchId(dataList[i][profileName]))
@@ -1321,12 +1327,9 @@ const loadDataListWithImage = async (dataList, profileName) => {
             dataList.forEach((item, index) => {
                 item[`${profileName}_url`] = data[index].presignedUrl.url
             })
-            resolve("done")
         } catch (error) {
             console.log("error accoured while loading data list with image => ", error);
-            reject(error);
         }
-    })
 }
 
 
@@ -1344,6 +1347,9 @@ async function loadData () {
         //4. load data list with image
         await loadDataListWithImage(dataList.value, "student_profile");
         //console.log("ddone");
+        if(dataList.value.length == 0) {
+            isEmpty.value = true;
+        }
         
     } catch (error) {
         console.log("error accoured while load data => ", error);

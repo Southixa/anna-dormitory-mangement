@@ -116,15 +116,10 @@ import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
-import { useApolloClient } from '@vue/apollo-composable';
 
 const { nhost } = useNhost();
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const storage = useStorage();
-const join = useJoin();
 
 const { id } = useRoute().params;
 
@@ -254,7 +249,6 @@ async function loadDataListWithImage (dataList, profileName) {
             dataList.forEach((item, index) => {
                 item[`${profileName}_url`] = data[index].presignedUrl.url
             })
-            console.log(dataList);
         } catch (error) {
             console.log("error accoured while loading data list with image => ", error);
         }

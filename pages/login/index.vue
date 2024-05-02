@@ -68,7 +68,7 @@ const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
     email: "southixa.pele10@gmail.com",
-    password: "12345678",
+    password: "",
 })
 
 const rules = {
@@ -137,7 +137,6 @@ async function handleLogin(e) {
 onMounted(async () => {
     cookie.value = "";
     await nhost.auth.signOut();
-    console.log("auto signout");
 })
 
 </script>

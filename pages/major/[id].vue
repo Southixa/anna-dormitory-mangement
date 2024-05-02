@@ -47,11 +47,7 @@ const { id } = useRoute().params;
 
 const { nhost } = useNhost();
 
-const { client } = useApolloClient();
-
 const message = useMessage();
-
-const storage = useStorage();
 
 const formRef = ref(null);
 const size = ref('large');

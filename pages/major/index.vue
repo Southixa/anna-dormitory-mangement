@@ -103,10 +103,6 @@ import Models from '../../model/index.js';
 import { watch } from 'vue';
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const storage = useStorage();
-const join = useJoin();
 
 const totalListCount = ref(0);
 const totalPage = ref(0);

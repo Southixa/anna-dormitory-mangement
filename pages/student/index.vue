@@ -184,10 +184,6 @@ import { watch } from 'vue';
 const { nhost } = useNhost();
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const storage = useStorage();
-const join = useJoin();
 
 const totalListCount = ref(0);
 const totalPage = ref(0);
@@ -486,7 +482,6 @@ async function loadSelectDegree() {
 
 onMounted(async () => {
     await Promise.all([loadSelectMajor(), loadSelectDegree(), loadData(), loadTotalListCount()]);
-    console.log("ok");
 })
 
 watch([major, degree, gender], async () => {

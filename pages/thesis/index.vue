@@ -181,10 +181,6 @@ import { onMounted, watch } from 'vue';
 const { nhost } = useNhost();
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const storage = useStorage();
-const join = useJoin();
 
 const totalListCount = ref(0);
 const totalPage = ref(0);
@@ -283,7 +279,6 @@ const loadDataList = async (offset = 0, limit = 10) => {
                 offset: offset,
                 limit: limit
             })
-            console.log(data);
             if(data.error) throw new Error(data.error);
 
             resolve(data.data.thesis)
@@ -503,7 +498,6 @@ async function loadSelectThesisType() {
             value: item.thesis_type_id,
         }))
         thesisTypeOptions.value = [defaulValue, ...thesisTypeList];
-        console.log("done load thesis type");
 
     } catch (error) {
         console.log("error accoured while load select thesis type => ", error);
@@ -523,7 +517,6 @@ async function loadSelectMajor() {
             value: item.major_id,
         }))
         majorOptions.value = [defaulValue, ...majorList];
-        console.log("done load major type");
 
     } catch (error) {
         console.log("error accoured while load select major => ", error);
@@ -543,7 +536,6 @@ async function loadSelectDegree() {
             value: item.degree_type_id,
         }))
         degreeOptions.value = [defaulValue, ...degreeList];
-        console.log("done load degree type");
 
     } catch (error) {
         console.log("error accoured while load select degree => ", error);

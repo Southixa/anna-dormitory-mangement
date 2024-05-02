@@ -176,10 +176,6 @@ import { onMounted, watch } from 'vue';
 const { nhost } = useNhost();
 
 const message = useMessage();
-const token = useCookie("token");
-const { client } = useApolloClient();
-const storage = useStorage();
-const join = useJoin();
 
 const totalListCount = ref(0);
 const totalPage = ref(0);
@@ -194,9 +190,6 @@ const notApproveAllCount = ref(0);
 const showModal = ref(false)
 
 const isApproved = ref("all");
-const gender = ref("all");
-const major = ref("all");
-const degree = ref("all");
 
 const isApprovedOptions =  ref([
     {
@@ -224,6 +217,9 @@ const loadTotalListCount = async () => {
             if(data.data) {
                 const totolCount = data.data.user_tb_aggregate.aggregate.count;
                 totalListCount.value = totolCount;
+            }
+            if(totalListCount.value == 0){
+                isEmpty.value = true;
             }
         } catch (error) {
             console.log("error accoured while load total list count => ", error);

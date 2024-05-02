@@ -113,21 +113,17 @@ import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
-import { NhostClient } from "@nhost/vue";
 
 
 const { nhost } = useNhost();
 
-const { client } = useApolloClient();
 
 const message = useMessage();
-
-const uploadFile = useUpload();
 
 const formRef = ref(null);
 const size = ref('large');
 const formValue = ref({
-    firstname: "0",
+    firstname: "southixa",
     lastname: "philavong",
     phone: "55847493",
     email: "southixa.pele10@gmail.com",
