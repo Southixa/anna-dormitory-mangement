@@ -123,9 +123,10 @@ import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
+import { onMounted } from "vue";
 
 
-
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
 
@@ -206,30 +207,28 @@ async function handleAdd() {
         loading.value = true;
 
         //4. insert image
-        const resUpload = await storage.upload(fileList.value[0].file);
-        if(!resUpload) {
+        const resUpload = await nhost.storage.upload({ file: fileList.value[0].file })
+
+        if(resUpload.error) {
             message.error("ບໍ່ສາມາດອັບໂຫຼດຮູບາບໄດ້")
             throw new Error('cannot upload image');
         }
-        const imageId = resUpload.id;
+        const imageId = resUpload.fileMetadata.id;
 
         //5. insert input
-        const resInsert =  await client.mutate({
-            mutation: Models.Student.insert,
-            variables: {
-                object: {
-                    student_profile: imageId,
-                    student_firstname: formValue.value.firstname,
-                    student_lastname: formValue.value.lastname,
-                    student_gender: formValue.value.gender,
-                    student_phone: formValue.value.phone,
-                    student_email: formValue.value.email,
-                    major_id: formValue.value.major,
-                    degree_type_id: formValue.value.degree
-                }
+        const resInsert = await nhost.graphql.request(Models.Student.insert, {
+            object: {
+                student_profile: imageId,
+                student_firstname: formValue.value.firstname,
+                student_lastname: formValue.value.lastname,
+                student_gender: formValue.value.gender,
+                student_phone: formValue.value.phone,
+                student_email: formValue.value.email,
+                major_id: formValue.value.major,
+                degree_type_id: formValue.value.degree
             }
-        }).catch(async (error)=>{return error});
-        if(!resInsert?.data) {
+        })
+        if(resInsert.error) {
             message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
             throw new Error('cannot save data => ' + resInsert);
         }
@@ -275,45 +274,46 @@ function handleRemoveFile(UploadFileInfo) {
     previewImage.value = "";
 }
 
-async function loadSelectData() {
+
+
+async function loadSelectMajor() {
     try {
-        //1. load major data
-        const resMajor = await client.query({
-            query: Models.Major.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
+        const resMajor = await nhost.graphql.request(Models.Major.getAll, {
+            offset: 0,
+            limit: null
         })
-        if(resMajor) {
+        if(!resMajor.error) {
             const majorList = resMajor.data.major.map((item, index) => ({
                 label: item.major_name,
                 value: item.major_id,
             }))
             majorOptions.value = majorList;
         }
+    } catch (error) {
+        console.log("error occured in loadSelectMajor => " + error);
+    }
+}
 
-        //2. load degree data
-        const resDegree = await client.query({
-            query: Models.Degree.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
+async function loadSelectDegree() {
+    try {
+        const resDegree = await nhost.graphql.request(Models.Degree.getAll, {
+            offset: 0,
+            limit: null
         })
-        if(resDegree) {
+        if(!resDegree.error) {
             const degreeList = resDegree.data.degree_type.map((item, index) => ({
                 label: item.degree_type_name,
                 value: item.degree_type_id,
             }))
             degreeOptions.value = degreeList;
         }
-    } catch(error) {
-        console.log("error occured in loadSelectData => " + error);
+    } catch (error) {
+        console.log("error occured in loadSelectDegree => " + error);
     }
 }
 
-loadSelectData();
-
+onMounted(async () => {
+    await Promise.all([loadSelectMajor(), loadSelectDegree()])
+})
 
 </script>

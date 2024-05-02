@@ -31,6 +31,7 @@ const Staff = {
             staff_password
             staff_profile
             staff_role
+            users_id
         }
     }
     `
@@ -39,18 +40,19 @@ const Staff = {
         query staff($id: uuid!) {
             staff_by_pk(staff_id: $id) {
                 staff_id
-                staff_profile
                 staff_firstname
                 staff_lastname
-                staff_phone
                 staff_email
+                staff_phone
                 staff_password
+                staff_profile
                 staff_role
+                users_id
             }
         }
     `,
     countAll: gql`
-        {
+         {
             staff_aggregate {
                 aggregate {
                 count(columns: staff_id)
@@ -59,7 +61,7 @@ const Staff = {
         }
     `,
     search: gql`
-        query search ($strText: String!, $phone: Int!) {
+        query search ($strText: String!, $phone: bigint!) {
         staff(where:
             {
             _or: [

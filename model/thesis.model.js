@@ -40,13 +40,36 @@ const Thesis = {
             liked
             downloaded
             file_id
+            degree_type {
+            degree_type_id
+            degree_type_name
+            }
+            major {
+            major_id
+            major_name
+            }
+            thesis_student_member_lists {
+            student {
+                student_firstname
+                student_lastname
+                student_profile
+            }
+            }
+            thesis_type {
+            thesis_type_id
+            thesis_type_name
+            }
         }
-    }
+        }
+
+
     `
     ,
     getOne: gql`
         query thesis($id: uuid!) {
             thesis_by_pk(thesis_id: $id) {
+                
+                
                 thesis_id
                 thesis_title_lao
                 thesis_title_eng
@@ -64,6 +87,27 @@ const Thesis = {
                 liked
                 downloaded
                 file_id
+                degree_type {
+                degree_type_id
+                degree_type_name
+                }
+                major {
+                major_id
+                major_name
+                }
+                thesis_student_member_lists {
+                student {
+                    student_firstname
+                    student_lastname
+                    student_profile
+                }
+                }
+                thesis_type {
+                thesis_type_id
+                thesis_type_name
+                }
+
+
             }
         }
     `,

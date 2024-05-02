@@ -125,7 +125,7 @@ import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
 
 
-
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
 
@@ -213,15 +213,23 @@ async function handleUpdate() {
         //4. check if image is changed
         if(isChangeImage.value) {
             //4.1. delete old image and upload new image
-            const resUpdateFile = await storage.update(formValue.value.profile, fileList.value[0].file);
-            const newProfileId = resUpdateFile.id;
+            const resDelFile = await nhost.storage.delete({ fileId: formValue.value.profile })
+            if(resDelFile.error) {
+                console.log("can not del old file");
+                throw new Error('can not del old file');
+            }
+
+            //4.2. upload new image
+            const resUploadfile = await nhost.storage.upload({ file: fileList.value[0].file })
+            
+            const newProfileId = resUploadfile.fileMetadata.id;;
             formValue.value.profile = newProfileId;
         }
 
         //5. update input
-        const resUpdate =  await client.mutate({
-            mutation: Models.Student.update,
-            variables: {
+        const resUpdate = await nhost.graphql.request(
+            Models.Student.update,
+            {
                 id: id,
                 object: {
                     student_profile: formValue.value.profile,
@@ -234,9 +242,8 @@ async function handleUpdate() {
                     degree_type_id: formValue.value.degree
                 }
             }
-        }).catch(async (error)=>{return error});
-        console.log(resUpdate);
-        if(!resUpdate?.data) {
+        )
+        if(resUpdate.error) {
             message.error("ອັບແດດຂໍ້ມູນບໍ່ສຳເລັດ")
             throw new Error('cannot update data => ' + resUpdate);
         }
@@ -283,46 +290,20 @@ function handleRemoveFile(UploadFileInfo) {
     isChangeImage.value = true;
 }
 
-async function loadSelectData() {
-    try {
-        //1. load major data
-        const resMajor = await client.query({
-            query: Models.Major.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        if(resMajor) {
-            const majorList = resMajor.data.major.map((item, index) => ({
-                label: item.major_name,
-                value: item.major_id,
-            }))
-            majorOptions.value = majorList;
-        }
 
-        //2. load degree data
-        const resDegree = await client.query({
-            query: Models.Degree.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        if(resDegree) {
-            const degreeList = resDegree.data.degree_type.map((item, index) => ({
-                label: item.degree_type_name,
-                value: item.degree_type_id,
-            }))
-            degreeOptions.value = degreeList;
-        }
+
+
+
+async function loadStudent() {
+    try {
 
         //3. load student data
-        const resStudent = await client.query({
-            query: Models.Student.getOne,
-            variables: {
-                id: id
-        }});
+        const resStudent = await nhost.graphql.request(Models.Student.getOne, {
+            id: id
+        })
+        if(resStudent.error) {
+            throw new Error('cannot load student data => ' + resStudent);
+        }
 
         formValue.value.profile = resStudent.data.student_by_pk.student_profile;
         formValue.value.firstname = resStudent.data.student_by_pk.student_firstname;
@@ -334,19 +315,68 @@ async function loadSelectData() {
         formValue.value.degree = resStudent.data.student_by_pk.degree_type_id;
 
         //4.get image
-        const { url } = await storage.getPresignUrl(formValue.value.profile);
-        previewImage.value = url;
+        const resfile = await nhost.storage.getPresignedUrl({fileId: formValue.value.profile})
+
+        previewImage.value = resfile.presignedUrl.url;
         fileList.value = [{id: "1", name: "ຮູບພາບ", status: 'pending'}]
 
-
-        
         
     } catch(error) {
-        console.log("error occured in loadSelectData => " + error);
+        console.log("error occured in loadStudent => " + error);
     }
 }
 
-loadSelectData();
+
+
+
+
+
+
+
+
+
+async function loadSelectMajor() {
+    try {
+        const resMajor = await nhost.graphql.request(Models.Major.getAll, {
+            offset: 0,
+            limit: null
+        })
+        if(!resMajor.error) {
+            const majorList = resMajor.data.major.map((item, index) => ({
+                label: item.major_name,
+                value: item.major_id,
+            }))
+            majorOptions.value = majorList;
+        }
+    } catch (error) {
+        console.log("error occured in loadSelectMajor => " + error);
+    }
+}
+
+async function loadSelectDegree() {
+    try {
+        const resDegree = await nhost.graphql.request(Models.Degree.getAll, {
+            offset: 0,
+            limit: null
+        })
+        if(!resDegree.error) {
+            const degreeList = resDegree.data.degree_type.map((item, index) => ({
+                label: item.degree_type_name,
+                value: item.degree_type_id,
+            }))
+            degreeOptions.value = degreeList;
+        }
+    } catch (error) {
+        console.log("error occured in loadSelectDegree => " + error);
+    }
+}
+
+onMounted(async () => {
+    loading.value = true;
+    await Promise.all([loadSelectMajor(), loadSelectDegree()])
+    await loadStudent();
+    loading.value = false;
+})
 
 
 </script>

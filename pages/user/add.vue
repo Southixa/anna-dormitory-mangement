@@ -21,7 +21,7 @@
                 <div class=" w-full rounded-full flex justify-center items-center" v-for="(item) in userAvatarList" :key="item.id">
                     <div class="w-12 h-12 border border-gray-100 rounded-full">
                         <n-image
-                            :class="`${item.user_avatar == avatar.user_avatar ? 'border border-green-600' : 'opacity-50'}`"
+                            :class="`${item?.user_avatar == avatar?.user_avatar ? 'border border-green-600' : 'opacity-50'}`"
                             v-if="item.user_avatar_url"
                             :src="item.user_avatar_url"
                             class="w-full h-full rounded-full cursor-pointer"
@@ -117,6 +117,9 @@ import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
 import { useApolloClient } from '@vue/apollo-composable';
+import { onMounted } from 'vue';
+
+const { nhost } = useNhost();
 
 const message = useMessage();
 const token = useCookie("token");
@@ -173,21 +176,18 @@ async function handleAdd() {
         loading.value = true;
 
         //4. insert input
-        const resInsert =  await client.mutate({
-            mutation: Models.User.insert,
-            variables: {
-                object: {
-                    user_avatar_id: avatar.value.user_avatar_id,
-                    user_firstname: formValue.value.firstname,
-                    user_lastname: formValue.value.lastname,
-                    user_phone: formValue.value.phone,
-                    user_email: formValue.value.email,
-                    user_password: formValue.value.password,
-                    user_is_approved: (formValue.value.isApproved == "true"),
-                }
+        const resInsert = await nhost.graphql.request(Models.User.insert, {
+            object: {
+                user_avatar_id: avatar.value.user_avatar_id,
+                user_firstname: formValue.value.firstname,
+                user_lastname: formValue.value.lastname,
+                user_phone: formValue.value.phone,
+                user_email: formValue.value.email,
+                user_password: formValue.value.password,
+                user_is_approved: (formValue.value.isApproved == "true"),
             }
-        }).catch(async (error)=>{return error});
-        if(!resInsert?.data) {
+        })
+        if(resInsert.error) {
             message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
             throw new Error('cannot save data => ' + resInsert);
         }
@@ -202,48 +202,61 @@ async function handleAdd() {
     }
 }
 
-const loadDataListWithImage = async (dataList, profileName) => {
-    return new Promise(async(resolve, reject) => {
+
+
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
+    })
+    return publicUrl;
+}
+
+async function loadDataListWithImage (dataList, profileName) {
         try {
-            let list = {};
-            let arrData = [];
-            Object.assign(list, JSON.parse(JSON.stringify(dataList)));
-            for (const [key, value] of Object.entries(list)) {
-                const res = await storage.getPresignUrl(value[profileName]);
-                value[`${profileName}_url`] = res.url
-                arrData.push(value);
+            let tempDataList = [...dataList];
+            let fecthArray = []
+            for(let i = 0; i < dataList.length; i++) {
+                fecthArray.push(fetchId(dataList[i][profileName]))
             }
-            resolve(arrData)
+
+            const data = await Promise.all(fecthArray);
+            dataList.forEach((item, index) => {
+                item[`${profileName}_url`] = data[index].presignedUrl.url
+            })
+            console.log(dataList);
         } catch (error) {
             console.log("error accoured while loading data list with image => ", error);
-            reject(error);
         }
-    })
 }
 
 
-async function loadData () {
+async function loadAvatar() {
     try {
-        //1. load user avatar
-        const resUserAvatarList = await client.query({
-            query: Models.User_avatar.getAll
-        })
-        userAvatarList.value = resUserAvatarList.data.user_avatar;
+        const resUserAvatarList = await nhost.graphql.request(Models.User_avatar.getAll);
 
-        //2. load user avatar with image
-        const resUserAvatarListWithImage = await loadDataListWithImage(resUserAvatarList.data.user_avatar, "user_avatar");
-        avatar.value = resUserAvatarListWithImage[0];
-        userAvatarList.value = resUserAvatarListWithImage
+        if(resUserAvatarList.error) throw new Error(resUserAvatarList.error.message);
+
+        userAvatarList.value = resUserAvatarList.data.user_avatar;
+        await loadDataListWithImage(userAvatarList.value, "user_avatar");
+        avatar.value = userAvatarList.value[0];
     } catch (error) {
-        console.log("eroor occured in loadData => " + error);
+        console.log("eroor occured in loadAvatar => " + error);
     }
 }
+
+
 
 function selectImage (data) {  
     avatar.value = data;
 }
 
-loadData();
+//loadData();
+
+onMounted(async () => {
+    await Promise.all([loadAvatar()]);
+})
 
 
 </script>

@@ -467,7 +467,7 @@ import Models from '../../model/index.js';
 
 
 
-
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
 
@@ -595,80 +595,8 @@ function handleRemoveFile(UploadFileInfo) {
 
 
 
-async function loadSelectOptionData() {
-    try {
-        //1. load thesis type
-        const resThesisType = await client.query({
-            query: Models.Thesis_type.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        thesisTypeOptions.value = resThesisType.data.thesis_type.map((item, index) => ({
-            label: item.thesis_type_name,
-            value: item.thesis_type_id,
-        }))
-
-        //2. load marjor option
-        const resMajor = await client.query({
-            query: Models.Major.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        majorOptions.value = resMajor.data.major.map((item, index) => ({
-            label: item.major_name,
-            value: item.major_id,
-        }))
-
-        //3. load degree option
-        const resDegree = await client.query({
-            query: Models.Degree.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        degreeOptions.value = resDegree.data.degree_type.map((item, index) => ({
-            label: item.degree_type_name,
-            value: item.degree_type_id,
-        }))
-
-        //4. load year option
-        const sinceYear = 2010;
-        const currentYear = new Date().getFullYear();
-        yearOptions.value = [];
-
-        for(let i = currentYear; i >= sinceYear; i--) {
-            yearOptions.value.push({label: (i + ""), value: (i + "")});
-        }
-
-    } catch (error) {
-        console.log("error accoured while load select option => ", error);
-    }
-}
 
 
-
-async function loadData () {
-    try {
-        //1. load select option
-        loadSelectOptionData();
-
-        //2. check thesis type, if 
-        //  2.1 student then load student
-        //  2.2 teacher then load teacher
-        //  2.3 institute then load institute
-    } catch (error) {
-        console.log("error occured in loadData => " + error);
-    }
-
-}
-
-
-loadData();
 
 
 const getThsisType = computed(() => {
@@ -755,56 +683,56 @@ async function handleAddForStudent() {
 
 
         //5. insert file
-        const resUpload = await storage.upload(fileList.value[0].file);
-        if(!resUpload) {
+        const resUpload = await nhost.storage.upload({ file: fileList.value[0].file })
+        if(resUpload.error) {
             message.error("ບໍ່ສາມາດອັບໂຫຼດຟາຍໄດ້")
             throw new Error('cannot upload file');
         }
-        const fileId = resUpload.id;
+        const fileId = resUpload.fileMetadata.id;
 
 
 
         //6. insert thesis for student
-        const resThesis = await client.mutate({
-            mutation: Models.Thesis.insert,
-            variables: {
-                object: {
-                    thesis_title_lao: formValue.value.laoThesisTitle,
-                    thesis_title_eng: formValue.value.engThesisTitle,
-                    thesis_type_id: formValue.value.thesisType,
-                    major_id: formValue.value.major,
-                    degree_type_id: formValue.value.degree,
-                    thesis_year: formValue.value.year,
-                    thesis_advisor_name: formValue.value.advisor,
-                    thesis_abstract_info_lao: formValue.value.laoAbstract,
-                    thesis_abstract_info_eng: formValue.value.engAbstract,
-                    thesis_author_1: teacherFormValue.value.teacherFullName1,
-                    thesis_author_2: teacherFormValue.value.teacherFullName2,
-                    thesis_author_3: teacherFormValue.value.teacherFullName3,
-                    seen: formValue.value.seen,
-                    liked: formValue.value.liked,
-                    downloaded: formValue.value.downloaded,
-                    file_id: fileId
-                }
+        const resThesis = await nhost.graphql.request(Models.Thesis.insert, {
+            object: {
+                thesis_title_lao: formValue.value.laoThesisTitle,
+                thesis_title_eng: formValue.value.engThesisTitle,
+                thesis_type_id: formValue.value.thesisType,
+                major_id: formValue.value.major,
+                degree_type_id: formValue.value.degree,
+                thesis_year: formValue.value.year,
+                thesis_advisor_name: formValue.value.advisor,
+                thesis_abstract_info_lao: formValue.value.laoAbstract,
+                thesis_abstract_info_eng: formValue.value.engAbstract,
+                thesis_author_1: teacherFormValue.value.teacherFullName1,
+                thesis_author_2: teacherFormValue.value.teacherFullName2,
+                thesis_author_3: teacherFormValue.value.teacherFullName3,
+                seen: formValue.value.seen,
+                liked: formValue.value.liked,
+                downloaded: formValue.value.downloaded,
+                file_id: fileId
             }
         })
+        if(resThesis.error) {
+            message.error("ບໍ່ສາມາດອັບໂຫຼດຂໍ້ມູນບົດຈົບໄດ້")
+            throw new Error('cannot thesis');
+        }
         const thesisId = resThesis?.data?.thesis.thesis_id;
         
 
         //7. insert thesis student member list
         for (let i = 0; i < dataListSelectd.value.length; i++) {
-            const resMember = await client.mutate({
-                mutation: Models.Thesis_student_member_list.insert,
-                variables: {
-                    object: {
-                        thesis_id: thesisId,
-                        student_id: dataListSelectd.value[i].student_id
-                    }
+            const resMember = await nhost.graphql.request(Models.Thesis_student_member_list.insert, {
+                object: {
+                    thesis_id: thesisId,
+                    student_id: dataListSelectd.value[i].student_id
                 }
             })
+            if(resMember.error) {
+                message.error("ບໍ່ສາມາດອັບລາຍຊື່ນັກສຶກາໄດ້")
+                throw new Error('cannot insert student member list');
+            }
         }
-
-
         //8. success
         message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
         loading.value = false;
@@ -849,44 +777,41 @@ async function handleAddForTeacher() {
 
 
         //5. insert file
-        const resUpload = await storage.upload(fileList.value[0].file);
-        if(!resUpload) {
+        const resUpload = await nhost.storage.upload({ file: fileList.value[0].file })
+        if(resUpload.error) {
             message.error("ບໍ່ສາມາດອັບໂຫຼດຟາຍໄດ້")
             throw new Error('cannot upload file');
         }
-        const fileId = resUpload.id;
+        const fileId = resUpload.fileMetadata.id;
 
 
 
-        //6. insert thesis for student
-        const resThesis = await client.mutate({
-            mutation: Models.Thesis.insert,
-            variables: {
-                object: {
-                    thesis_title_lao: formValue.value.laoThesisTitle,
-                    thesis_title_eng: formValue.value.engThesisTitle,
-                    thesis_type_id: formValue.value.thesisType,
-                    major_id: formValue.value.major,
-                    degree_type_id: formValue.value.degree,
-                    thesis_year: formValue.value.year,
-                    thesis_advisor_name: formValue.value.advisor,
-                    thesis_abstract_info_lao: formValue.value.laoAbstract,
-                    thesis_abstract_info_eng: formValue.value.engAbstract,
-                    thesis_author_1: teacherFormValue.value.teacherFullName1,
-                    thesis_author_2: teacherFormValue.value.teacherFullName2,
-                    thesis_author_3: teacherFormValue.value.teacherFullName3,
-                    seen: formValue.value.seen,
-                    liked: formValue.value.liked,
-                    downloaded: formValue.value.downloaded,
-                    file_id: fileId
-                }
+        //6. insert thesis for teacher
+        const resThesis = await nhost.graphql.request(Models.Thesis.insert, {
+            object: {
+                thesis_title_lao: formValue.value.laoThesisTitle,
+                thesis_title_eng: formValue.value.engThesisTitle,
+                thesis_type_id: formValue.value.thesisType,
+                major_id: formValue.value.major,
+                degree_type_id: formValue.value.degree,
+                thesis_year: formValue.value.year,
+                thesis_advisor_name: formValue.value.advisor,
+                thesis_abstract_info_lao: formValue.value.laoAbstract,
+                thesis_abstract_info_eng: formValue.value.engAbstract,
+                thesis_author_1: teacherFormValue.value.teacherFullName1,
+                thesis_author_2: teacherFormValue.value.teacherFullName2,
+                thesis_author_3: teacherFormValue.value.teacherFullName3,
+                seen: formValue.value.seen,
+                liked: formValue.value.liked,
+                downloaded: formValue.value.downloaded,
+                file_id: fileId
             }
-        }).catch((error)=>{return error;})
-
-        if(!resThesis) {
-            message.error("ບໍ່ສາມາດບັນທຶກໄດ້")
-            throw new Error('unable to save data');
+        })
+        if(resThesis.error) {
+            message.error("ບໍ່ສາມາດອັບໂຫຼດຂໍ້ມູນບົດຈົບໄດ້")
+            throw new Error('cannot thesis');
         }
+        const thesisId = resThesis?.data?.thesis.thesis_id;
 
         //8. success
         message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
@@ -945,44 +870,41 @@ async function handleAddForInstitute() {
 
 
         //7. insert file
-        const resUpload = await storage.upload(fileList.value[0].file);
-        if(!resUpload) {
+        const resUpload = await nhost.storage.upload({ file: fileList.value[0].file })
+        if(resUpload.error) {
             message.error("ບໍ່ສາມາດອັບໂຫຼດຟາຍໄດ້")
             throw new Error('cannot upload file');
         }
-        const fileId = resUpload.id;
+        const fileId = resUpload.fileMetadata.id;
 
 
 
         //8. insert thesis for student
-        const resThesis = await client.mutate({
-            mutation: Models.Thesis.insert,
-            variables: {
-                object: {
-                    thesis_title_lao: formValue.value.laoThesisTitle,
-                    thesis_title_eng: formValue.value.engThesisTitle,
-                    thesis_type_id: formValue.value.thesisType,
-                    major_id: formValue.value.major,
-                    degree_type_id: formValue.value.degree,
-                    thesis_year: formValue.value.year,
-                    thesis_advisor_name: formValue.value.advisor,
-                    thesis_abstract_info_lao: formValue.value.laoAbstract,
-                    thesis_abstract_info_eng: formValue.value.engAbstract,
-                    thesis_author_1: teacherFormValue.value.teacherFullName1,
-                    thesis_author_2: teacherFormValue.value.teacherFullName2,
-                    thesis_author_3: teacherFormValue.value.teacherFullName3,
-                    seen: formValue.value.seen,
-                    liked: formValue.value.liked,
-                    downloaded: formValue.value.downloaded,
-                    file_id: fileId
-                }
+        const resThesis = await nhost.graphql.request(Models.Thesis.insert, {
+            object: {
+                thesis_title_lao: formValue.value.laoThesisTitle,
+                thesis_title_eng: formValue.value.engThesisTitle,
+                thesis_type_id: formValue.value.thesisType,
+                major_id: formValue.value.major,
+                degree_type_id: formValue.value.degree,
+                thesis_year: formValue.value.year,
+                thesis_advisor_name: formValue.value.advisor,
+                thesis_abstract_info_lao: formValue.value.laoAbstract,
+                thesis_abstract_info_eng: formValue.value.engAbstract,
+                thesis_author_1: teacherFormValue.value.teacherFullName1,
+                thesis_author_2: teacherFormValue.value.teacherFullName2,
+                thesis_author_3: teacherFormValue.value.teacherFullName3,
+                seen: formValue.value.seen,
+                liked: formValue.value.liked,
+                downloaded: formValue.value.downloaded,
+                file_id: fileId
             }
-        }).catch((error)=>{return error;})
-
-        if(!resThesis) {
-            message.error("ບໍ່ສາມາດບັນທຶກໄດ້")
-            throw new Error('unable to save data');
+        })
+        if(resThesis.error) {
+            message.error("ບໍ່ສາມາດອັບໂຫຼດຂໍ້ມູນບົດຈົບໄດ້")
+            throw new Error('cannot thesis');
         }
+        const thesisId = resThesis?.data?.thesis.thesis_id;
 
         //8. success
         message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
@@ -1020,7 +942,7 @@ import { IosSearch } from "@vicons/ionicons4";
 import { Random, Trash as TrashIcon,  Times} from "@vicons/fa";
 import { DoneFilled, EditFilled as EditIcon } from '@vicons/material';
 import { NIcon } from "naive-ui";
-import { computed, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
 
 
 
@@ -1097,175 +1019,16 @@ const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 const renderIconTimes = () => h(NIcon, null, { default: () => h(Times) });
 
 
-const loadTotalListCount = async () => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            const data = await client.query({
-                query: Models.Student.countAll
-            })
-            if(data) {
-                const totolCount = data.data.student_aggregate.aggregate.count;
-                resolve(totolCount)
-            }
-        } catch (error) {
-            console.log("error accoured while load total list count => ", error);
-            reject(error)
-        }
-    })
-}
 
-const loadDataList = async (offset = 0, limit = 10) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            //1. load data student
-            const data = await client.query({
-                query: Models.Student.getAll,
-                variables: {
-                    offset: offset,
-                    limit: limit
-                }
-            })
-
-            
-            if(data) {
-                const joinedData = await joinData(data.data.student);
-                resolve(joinedData)
-            }
-        } catch (error) { 
-            console.log("error accoured while loading data => ", error);
-            reject(error)
-        }
-    })
-}
-
-function joinData(itemList) {
-    return new Promise(async(resolve, reject) => {
-        try {
-            //1. join student with major
-            const joinMajor = new join.Join(itemList, {tableName: "major", idName: "major_id", returnField: [
-                "major_id",
-                "major_name",
-            ]
-            });
-            const joinMajorResult = await joinMajor.returnJoin();
-
-            //2. join student with degree
-            const joinDegree = new join.Join(joinMajorResult, {tableName: "degree_type", idName: "degree_type_id", returnField: [
-                "degree_type_id",
-                "degree_type_name",
-            ]
-            });
-            const joinDegreeResult = await joinDegree.returnJoin();
-
-            //3. return fullfied data
-            resolve(joinDegreeResult)
-        } catch(error) {
-            reject(error);
-        }
-    })
-}
-
-const loadDataListWithImage = async (dataList, profileName) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            let list = {};
-            let arrData = [];
-            Object.assign(list, JSON.parse(JSON.stringify(dataList)));
-            for (const [key, value] of Object.entries(list)) {
-                const res = await storage.getPresignUrl(value[profileName]);
-                value[`${profileName}_url`] = res.url
-                arrData.push(value);
-            }
-            resolve(arrData)
-        } catch (error) {
-            console.log("error accoured while loading data list with image => ", error);
-            reject(error);
-        }
-    })
-}
-
-
-async function stLoadSelectData() {
-    try {
-        //1. defalut value
-        const defaulValue = {
-            label: "ທັງໝົດ",
-            value: "all"
-        }
-
-        //2. load major data
-        const resMajor = await client.query({
-            query: Models.Major.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        if(resMajor) {
-            const majorList = resMajor.data.major.map((item, index) => ({
-                label: item.major_name,
-                value: item.major_id,
-            }))
-            stMajorOptions.value = [defaulValue, ...majorList];
-        }
-
-        //3. load degree data
-        const resDegree = await client.query({
-            query: Models.Degree.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
-        })
-        if(resDegree) {
-            const degreeList = resDegree.data.degree_type.map((item, index) => ({
-                label: item.degree_type_name,
-                value: item.degree_type_id,
-            }))
-            stDegreeOptions.value = [defaulValue, ...degreeList];
-        }
-    } catch(error) {
-        console.log("error occured in loadSelectData => " + error);
-    }
-}
-
-
-
-async function stLoadData () {
-    try {
-        //1. load totalListCount
-        totalListCount.value = await loadTotalListCount();
-        if(totalListCount.value === 0){
-            isEmpty.value = true;
-            return;
-        }
-
-        //2. load select data
-        await stLoadSelectData();
-
-        //3. calulate total page
-        //totalPage.value = Math.ceil(totalListCount.value / limit);
-
-        //4. load data list
-        dataList.value = await loadDataList(offset, limit);
-
-        //5. load data list with image
-        dataList.value = await loadDataListWithImage(dataList.value, "student_profile");
-        
-    } catch (error) {
-        console.log("error accoured while load data => ", error);
-    }
-}
-
-stLoadData();
 
 async function handleSearch() {
     try {
 
         loading.value = true;
 
-        const data = await client.query({
-            query: gql`
+        const data = await nhost.graphql.request(
+
+        `
 
                     query search  {
                         student(where:
@@ -1296,11 +1059,20 @@ async function handleSearch() {
                             student_email
                             major_id
                             degree_type_id
+                            major {
+                            major_name
+                            major_id
+                            }
+                            degree_type {
+                            degree_type_id
+                            degree_type_name
+                            }
                         }
                     }
 
             `
-        })
+
+        )
 
         if(data?.data?.student.length == 0) {
             dataList.value = [];
@@ -1310,9 +1082,8 @@ async function handleSearch() {
         }
 
         isEmpty.value = false;
-        let tempDataList = await joinData(data.data.student);
-        tempDataList = await loadDataListWithImage(tempDataList, "student_profile");
-        dataList.value = fillterSelectedStudent(tempDataList);
+        dataList.value = data.data.student;
+        await loadDataListWithImage(dataList.value, "student_profile");
         loading.value = false;
         
     } catch (error) {
@@ -1423,6 +1194,183 @@ watch(getDegree, () => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+async function loadSelectThesisType() {
+    try {
+        const resThesisType = await nhost.graphql.request(Models.Thesis_type.getAll, {
+            offset: 0,
+            limit: null
+        })
+        if(resThesisType.error) throw new Error(resThesisType.error);
+
+        const thesisTypeList = resThesisType.data.thesis_type.map((item, index) => ({
+            label: item.thesis_type_name,
+            value: item.thesis_type_id,
+        }))
+        thesisTypeOptions.value = [...thesisTypeList];
+        console.log("done load thesis type");
+
+    } catch (error) {
+        console.log("error accoured while load select thesis type => ", error);
+    }
+}
+
+async function loadSelectMajor() {
+    try {
+        const resMajor = await nhost.graphql.request(Models.Major.getAll, {
+            offset: 0,
+            limit: null
+        })
+        if(resMajor.error) throw new Error(resThesisType.error);
+
+        const majorList = resMajor.data.major.map((item, index) => ({
+            label: item.major_name,
+            value: item.major_id,
+        }))
+        majorOptions.value = [...majorList];
+        console.log("done load major type");
+
+    } catch (error) {
+        console.log("error accoured while load select major => ", error);
+    }
+}
+
+async function loadSelectDegree() {
+    try {
+        const resDegree = await nhost.graphql.request(Models.Degree.getAll, {
+            offset: 0,
+            limit: null
+        })
+        if(resDegree.error) throw new Error(resThesisType.error);
+
+        const degreeList = resDegree.data.degree_type.map((item, index) => ({
+            label: item.degree_type_name,
+            value: item.degree_type_id,
+        }))
+        degreeOptions.value = [...degreeList];
+        console.log("done load degree type");
+
+    } catch (error) {
+        console.log("error accoured while load select degree => ", error);
+    }
+}
+
+function loadSelectYear() {
+    try {
+        const sinceYear = 2010;
+        const currentYear = new Date().getFullYear();
+        yearOptions.value = [];
+
+        for(let i = currentYear; i >= sinceYear; i--) {
+            yearOptions.value.push({label: (i + ""), value: (i + "")});
+        }
+    } catch (error) {
+        console.log("error accoured while load select year => ", error);
+    }
+}
+
+
+
+const loadDataList = async (offset = 0, limit = 10) => {
+    return new Promise(async(resolve, reject) => {
+        try {
+            //1. load data student
+            const data = await nhost.graphql.request(Models.Student.getAll, {
+                offset: offset,
+                limit: limit
+            })
+            
+            if(!data.error) {
+                resolve(data.data.student)
+            }
+        } catch (error) { 
+            console.log("error accoured while loading data => ", error);
+            reject(error)
+        }
+    })
+}
+
+
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
+    })
+    return publicUrl;
+}
+
+const loadDataListWithImage = async (dataList, profileName) => {
+    return new Promise(async(resolve, reject) => {
+        try {
+            let fecthArray = []
+            for(let i = 0; i < dataList.length; i++) {
+                fecthArray.push(fetchId(dataList[i][profileName]))
+            }
+
+            const data = await Promise.all(fecthArray);
+            dataList.forEach((item, index) => {
+                item[`${profileName}_url`] = data[index].presignedUrl.url
+            })
+            resolve("done")
+        } catch (error) {
+            console.log("error accoured while loading data list with image => ", error);
+            reject(error);
+        }
+    })
+}
+
+
+
+
+async function loadData () {
+    try {
+
+        //2. calulate total page
+        //totalPage.value = Math.ceil(totalListCount.value / limit);
+
+        //3. load data list
+        dataList.value = await loadDataList(offset, limit);
+
+        //4. load data list with image
+        await loadDataListWithImage(dataList.value, "student_profile");
+        //console.log("ddone");
+        
+    } catch (error) {
+        console.log("error accoured while load data => ", error);
+    }
+}
+
+const defaulValue = {
+    label: "ທັງໝົດ",
+    value: "all"
+}
+
+function loadSelectStAll(){
+    stDegreeOptions.value = [defaulValue, ...degreeOptions.value];
+    stMajorOptions.value = [defaulValue, ...majorOptions.value];
+}
+
+
+onMounted(async () => {
+    await Promise.all([
+        loadSelectDegree(),
+        loadSelectMajor(),
+        loadSelectThesisType(),
+        loadSelectYear(),
+        loadData()
+    ]);
+    loadSelectStAll();
+})
 
 </script>
 

@@ -122,13 +122,14 @@ const loading = ref(false);
 const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
+const { nhost } = useNhost();
 
 const loadTotalListCount = async () => {
     return new Promise(async(resolve, reject) => {
         try {
-            const data = await client.query({
-                query: Models.Major.countAll
-            })
+
+            const data = await nhost.graphql.request(Models.Major.countAll)
+
             if(data) {
                 const totolCount = data.data.major_aggregate.aggregate.count;
                 resolve(totolCount)
@@ -144,12 +145,9 @@ const loadDataList = async (offset = 0, limit = 10) => {
     return new Promise(async(resolve, reject) => {
         try {
             //1. load data student
-            const data = await client.query({
-                query: Models.Major.getAll,
-                variables: {
-                    offset: offset,
-                    limit: limit
-                }
+            const data = await nhost.graphql.request(Models.Major.getAll, {
+                offset: offset,
+                limit: limit
             })
 
             
@@ -165,15 +163,13 @@ const loadDataList = async (offset = 0, limit = 10) => {
 
 async function handleDelete(id) {
     try {
-        const data = await client.mutate({
-            mutation: Models.Major.delete,
-            variables: {
-                id: id
-            }
-        }).catch((error) => {
+        const data = await nhost.graphql.request(Models.Major.delete, {
+            id: id
+        })
+        if(data.error) {
             message.error("ບໍ່ສາມາດລົບໄດ້ ສາຂາກຳລັງຖືກໃຊ້ຢູ່"); 
             throw new Error("can not delete on used major");
-        })
+        }
 
         if(data) {
             dataList.value = dataList.value.filter((item) => item.major_id !== id);
@@ -204,7 +200,6 @@ async function loadData () {
 
         //3. load data list
         dataList.value = await loadDataList(offset, limit);
-        console.log(dataList.value);
 
 
         
@@ -220,8 +215,8 @@ async function handleSearch() {
 
         loading.value = true;
 
-        const data = await client.query({
-            query: gql`
+        const data = await nhost.graphql.request(
+            `
 
                     query search  {
                         major(where:
@@ -239,7 +234,12 @@ async function handleSearch() {
                     }
 
             `
-        })
+        )
+
+        if(data.error) {
+            message.error("ບໍ່ສາມາດຄົ້ນຫາໄດ້"); 
+            throw new Error("not able to search");
+        }
 
         if(data?.data?.major.length == 0) {
             dataList.value = [];

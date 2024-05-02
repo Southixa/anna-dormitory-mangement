@@ -38,8 +38,8 @@ const Staff = {
       validator(rule, value) {
           if(!value) {
               return new Error("ກະລຸນາໃສ່ລະຫັດຜ່ານ")
-          } else if (value.length <= 4){
-              return new Error("ລະຫັດຜ່ານຕ້ອງຫຼາຍກວ່າ 4 ຕົວອັກສອນ")
+          } else if (value.length <= 8){
+              return new Error("ລະຫັດຜ່ານຕ້ອງຫຼາຍກວ່າ 8 ຕົວອັກສອນ")
           }
           return true
       },

@@ -7,9 +7,11 @@
                 <div class="flex flex-col justify-center items-center">
                     <n-image v-if="previewImage" :src="previewImage" class="w-60 h-60 rounded-full" object-fit="cover" width="100%" height="100%"/>
                     <n-upload
+                        :file-list="fileList"
                         directory-dnd
                         :max="1"
                         @change="handleSelectFile"
+                        @remove="handleRemoveFile"
                         :default-upload="false"
                         accept="image/*"
                     >
@@ -29,9 +31,6 @@
                             </div>
                         </n-upload-dragger>
                     </n-upload>
-                    <n-button v-if="!isChangeImage" :disabled="loading" tertiary color="#002749" size="large" class="w-40 shadow font-normal" @click="removePreviousImage">
-                        ລົບ
-                    </n-button>
                 </div>
                 
             </div>
@@ -100,7 +99,7 @@
                         ຍົກເລີກ
                     </n-button>
                 </NuxtLink>
-                <n-button @click="handleEdit" :loading="loading" type="primary" color="#002749" size="large" class="w-40 shadow font-normal">
+                <n-button @click="handleAdd" :loading="loading" type="primary" color="#002749" size="large" class="w-40 shadow font-normal">
                     ບັນທຶກ
                 </n-button>
             </div>
@@ -116,30 +115,32 @@ import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
+import { NhostClient } from "@nhost/vue";
+import { onMounted } from "vue";
 
 
+const { id } = useRoute().params;
 
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
-const { id } = useRoute().params;
-const deleteFile = useDelete();
 
 const message = useMessage();
-const token = useCookie("token");
 
 const uploadFile = useUpload();
 
+const fileList = ref([]);
 const formRef = ref(null);
 const size = ref('large');
 const formValue = ref({
-    id: "",
+    profile: "",
     firstname: "0",
     lastname: "philavong",
     phone: "55847493",
     email: "southixa.pele10@gmail.com",
     password: "123456",
     role: "admin",
-    profile: ""
+    usersId: ""
 })
 
 const roleOptions =  ref([
@@ -156,13 +157,14 @@ const roleOptions =  ref([
 const loading = ref(false);
 const isChangeImage = ref(false);
 
-
 const rules = Rules.Staff;
 
 
 
-async function handleEdit() {
+async function handleAdd() {
     try {
+
+        //formValue.value.firstname = (Number(formValue.value.firstname) + 1) + "";
         //1. check validate input
         const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
         if(invalidField.length > 0) {
@@ -171,7 +173,7 @@ async function handleEdit() {
         }
 
         //2. check image is selected
-        if(!imageUpload.value && !previewImage.value){
+        if(fileList.value.length == 0) {
             message.error("ກະລຸນາອັບໂຫຼດຮູບພາບ")
             throw new Error('no image selected');
         }
@@ -180,51 +182,98 @@ async function handleEdit() {
         loading.value = true;
 
 
-        //4. is new image
-        if(isChangeImage.value) {
-            //4.1 delete old image
-            const result = await deleteFile.handleDeleteFile(formValue.value.profile);
-            if(!result) {
-                message.error("ບໍ່ສາມາດລົບຮູບເກົ່າໄດ້")
-                throw new Error('cannot delete old image');
-            }
+        await handleDelete(id, formValue.value.usersId, formValue.value.profile);
 
-            //4.2 insert new image
-            formValue.value.profile = await uploadFile.handleUploadFile(imageUpload.value);
-            if(!formValue.value.profile) {
-                message.error("ບໍ່ສາມາດອັບໂຫຼດຮູບໃຫມ່ໄດ້")
-                throw new Error('cannot upload new image');
+
+        //4. insert users
+        const resUsers = await $fetch('https://blpbkifrpjcudrpgmsea.auth.ap-southeast-1.nhost.run/v1/signup/email-password', {
+            method: 'POST',
+            body: {
+                email: formValue.value.email,
+                password: formValue.value.password
             }
+        }).catch((error) => {
+            message.error("ອີເມວຖືກໃຊ້ແລ້ວ")
+            formValue.value.email = "";
+            throw new Error('Email alrealy in use => ' + error);
+        });
+        
+        const usersId = resUsers.session.user.id;
+
+
+        //5. insert new image if change image, else use image old id
+        let imageId = formValue.value.profile;
+        if(isChangeImage.value) {
+            const resFile = await nhost.storage.upload({ file: fileList.value[0].file })
+            if(resFile.error) {
+                message.error("ບໍ່ສາມາດອັບໂຫຼດຮູບາບໄດ້")
+                throw new Error('cannot upload image => ' + resFile.error)
+            }
+            imageId = resFile.fileMetadata.id;
         }
 
+
         //6. insert input
-        const res =  await client.mutate({
-            mutation: Models.Staff.update,
-            variables: {
-                id: formValue.value.id,
-                object: {
-                    staff_profile: formValue.value.profile,
+        const resStaff = await nhost.graphql.request(Models.Staff.insert, {
+            object: {
+                    staff_profile: imageId,
                     staff_firstname: formValue.value.firstname,
                     staff_lastname: formValue.value.lastname,
                     staff_phone: formValue.value.phone,
                     staff_email: formValue.value.email,
                     staff_password: formValue.value.password,
-                    staff_role: formValue.value.role
-                }
+                    staff_role: formValue.value.role,
+                    users_id: usersId
             }
-        }).catch(async (error)=>{return error});
-        if(!res?.data) {
+        })
+        if(resStaff.error) {
             message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
-            throw new Error('cannot save data => ' + res);
+            throw new Error('cannot save data => ' + resStaff);
         }
 
-        //6. success
-        message.success("ແກ້ໄຂຂໍ້ມູນສຳເລັດ")
+
+        //7. success
+        message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
         loading.value = false;
 
+
     } catch (error) {
-        console.log("error occured in handleEdit => " + error);
+        console.log("error occured in handleAdd => " + error);
         loading.value = false;
+    }
+}
+
+
+async function handleDelete(staff_id, users_id, profile_id) {
+    try {
+        //1. delete staff
+        const resStaff = await nhost.graphql.request(Models.Staff.delete, {
+            id: staff_id
+        })
+        if(resStaff.error) {
+            throw new Error(resStaff.error);
+        }
+
+        //1. delete users 
+        const resUsers = await nhost.graphql.request(Models.Users.delete, {
+            id: users_id
+        })
+        if(resUsers.error) {
+            throw new Error(resUsers.error);
+        }
+
+
+        if(isChangeImage.value) {
+            const resFile = await nhost.storage.delete({ fileId: profile_id })
+            if(resFile.error) {
+                throw new Error(resFile.error);
+            }
+        }
+
+        console.log("success delete old staff");
+
+    } catch (error) {
+        console.log("error accoured while delete staff => ", error);
     }
 }
 
@@ -232,83 +281,83 @@ async function handleEdit() {
 const previewImage = ref(null);
 const imageUpload = ref(null);
 
-function handleSelectFile(data) {
-    const file = data.file.file;
+function handleSelectFile(UploadFileInfo) {
+
+    if((UploadFileInfo?.file?.status == "removed")){
+        return
+    }
+
+    const file = UploadFileInfo.file.file;
     const fileMb = file.size / 1024 ** 2;
+
     if(fileMb > 3) {
-        data.fileList.pop();
         message.error("ຂະໝາດຟາຍກາຍ 3 Mb")
         return
     }
-    if((data.file.type != "image/png") && (data.file.type != "image/jpeg") && (data.file.type != "image/jpg")) {
-        data.fileList.pop();
+
+    if((UploadFileInfo.file.type != "image/png") && (UploadFileInfo.file.type != "image/jpeg") && (UploadFileInfo.file.type != "image/jpg")) {
         message.error("ອັບໂຫຼດຮູບພາບສະເພາະຟາຍ png ແລະ jpg")
         return
     }
-    imageUpload.value = file;
+
+    fileList.value.push(UploadFileInfo.file);
+
     const imageSrc = URL.createObjectURL(file);
     previewImage.value = imageSrc;
-    if(data.fileList.length <= 0) {
-        previewImage.value = null;
-        imageUpload.value = null;
-    }
 }
 
-async function loadData() {
-    try {
-        const data = await client.query({
-            query: Models.Staff.getOne,
-            variables: {
-                id: id
-            }
-        })
-
-        if(data) {
-            formValue.value = {
-                id: data.data.staff_by_pk.staff_id,
-                firstname: data.data.staff_by_pk.staff_firstname,
-                lastname: data.data.staff_by_pk.staff_lastname,
-                phone: data.data.staff_by_pk.staff_phone + "",
-                email: data.data.staff_by_pk.staff_email,
-                password: data.data.staff_by_pk.staff_password,
-                role: data.data.staff_by_pk.staff_role,
-                profile: data.data.staff_by_pk.staff_profile
-            }
-        }
-
-        previewImage.value = await loadImageFormId(formValue.value.profile);
-
-    } catch (error) {
-        console.log("error occured in loadData => " + error);
-    }
-}
-
-loadData();
-
-
-const loadImageFormId = async (id) => {
-    return new Promise( async (resolve, reject) => {
-        try {
-            const respon = await $fetch(`https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files/${id}/presignedurl`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token.value}`
-                }
-            })
-            if(respon) {
-                resolve(respon.url);
-            }
-        } catch (error) {
-            console.log("error accoured while load image form id => ", error);
-            reject(error)
-        }
-    })
-}
-
-function removePreviousImage() {
-    previewImage.value = null;
+function handleRemoveFile(UploadFileInfo) {
+    fileList.value = [];
+    UploadFileInfo.fileList.pop();
+    previewImage.value = "";
     isChangeImage.value = true;
 }
+
+async function loadStaffData () {
+    try {
+        const resStaff = await nhost.graphql.request(Models.Staff.getOne, {
+            id: id
+        })
+        if(resStaff.error) {
+            throw new Error('cannot get data => ' + resStaff);
+        }
+
+
+        const staffData = resStaff.data.staff_by_pk;
+        formValue.value.firstname = staffData.staff_firstname;
+        formValue.value.lastname = staffData.staff_lastname;
+        formValue.value.phone = staffData.staff_phone + "";
+        formValue.value.email = staffData.staff_email;
+        formValue.value.password = staffData.staff_password;
+        formValue.value.role = staffData.staff_role;
+        formValue.value.usersId = staffData.users_id;
+        formValue.value.profile = staffData.staff_profile;
+
+        const resFile = await nhost.storage.getPresignedUrl({
+            fileId: staffData.staff_profile
+        });
+        if(resFile.error) {
+            throw new Error('cannot get image => ' + resFile);
+        }
+        const imageSrc = resFile.presignedUrl.url;
+        previewImage.value = imageSrc;
+
+        fileList.value = [{id: "1", name: "ຮູບພາບ", status: 'pending'}]
+
+
+        return;
+    } catch (error) {
+        console.log("error occured in loadStaffData => " + error);
+    }
+}
+//console.log("hhi");
+
+onMounted(async () => {
+    loading.value = true;
+    await loadStaffData();
+    loading.value = false;
+    //console.log("hi");
+})
 
 
 </script>

@@ -1,4 +1,4 @@
-const User = {
+const Users = {
     insert: gql`
         mutation insertUser($object: user_tb_insert_input!) {
             insert_user_tb_one(object: $object) {
@@ -24,9 +24,9 @@ const User = {
     }
     `,
     delete: gql`
-    mutation deleteUserTb ($id: uuid!){
-        delete_user_tb_by_pk(user_id: $id) {
-            user_id
+    mutation deleteUsers($id: uuid!) {
+        deleteUser(id: $id) {
+            id
         }
     }
     `,
@@ -109,4 +109,4 @@ const User = {
     `,
 }
 
-export default User;
+export default Users;

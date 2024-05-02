@@ -45,6 +45,8 @@ import Models from '../../model/index.js';
 
 const { id } = useRoute().params;
 
+const { nhost } = useNhost();
+
 const { client } = useApolloClient();
 
 const message = useMessage();
@@ -76,18 +78,15 @@ async function handleUpdate() {
         loading.value = true;
 
         //3. update input
-        const resUpdate =  await client.mutate({
-            mutation: Models.Major.update,
-            variables: {
-                id: id,
-                object: {
-                    major_name: formValue.value.name
-                }
+        const resUpdate = await nhost.graphql.request(Models.Major.update, {
+            id: id,
+            object: {
+                major_name: formValue.value.name
             }
-        }).catch(async (error)=>{return error});
+        })
         
         
-        if(!resUpdate?.data) {
+        if(resUpdate.error) {
             message.error("ອັບແດດຂໍ້ມູນບໍ່ສຳເລັດ")
             throw new Error('cannot save data => ' + resUpdate);
         }
@@ -104,12 +103,13 @@ async function handleUpdate() {
 
 async function loadData () {
     try {
-        const resMajor = await client.query({
-            query: Models.Major.getOne,
-            variables: {
-                id: id
-            }
+        const resMajor = await nhost.graphql.request(Models.Major.getOne, {
+            id: id
         })
+        if(resMajor.error) {
+            message.error("ບໍ່ສາມາດດຶງຂໍ້ມູນໄດ້");
+            throw new Error("not able to load data");
+        }
         formValue.value.name = resMajor?.data?.major_by_pk?.major_name;
     } catch (error) {
         console.log("error accoured while load data => ", error);

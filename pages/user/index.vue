@@ -90,8 +90,8 @@
                             <td class="px-6 py-2">
                                 <div class="w-14 h-14 border border-gray-100 rounded-full">
                                     <n-image
-                                        v-if="item?.user_avatar?.user_avatar_url"
-                                        :src="item?.user_avatar?.user_avatar_url"
+                                        v-if="item?.user_avatar_url"
+                                        :src="item?.user_avatar_url"
                                         class="w-full h-full rounded-full"
                                         height="100%"
                                         width="100%"
@@ -171,7 +171,9 @@ import { DoneFilled, EditFilled as EditIcon } from '@vicons/material';
 import { NIcon } from "naive-ui";
 import { useMessage } from 'naive-ui';
 import Models from '../../model/index.js';
-import { watch } from 'vue';
+import { onMounted, watch } from 'vue';
+
+const { nhost } = useNhost();
 
 const message = useMessage();
 const token = useCookie("token");
@@ -217,101 +219,76 @@ const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
 
 const loadTotalListCount = async () => {
-    return new Promise(async(resolve, reject) => {
         try {
-            const data = await client.query({
-                query: Models.User.countAll
-            })
-            if(data) {
+            const data = await nhost.graphql.request(Models.User.countAll);
+            if(data.data) {
                 const totolCount = data.data.user_tb_aggregate.aggregate.count;
-                resolve(totolCount)
+                totalListCount.value = totolCount;
             }
         } catch (error) {
             console.log("error accoured while load total list count => ", error);
-            reject(error)
         }
-    })
 }
 
-const loadDataList = async (offset = 0, limit = 10) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            //1. load data student
-            const data = await client.query({
-                query: Models.User.getAll,
-                variables: {
-                    offset: offset,
-                    limit: limit,
-                    order_by: "asc"
-                }
-            })
-            
-            if(data) {
-                const joinedData = await joinData(data.data.user_tb);
-                resolve(joinedData)
-            }
-        } catch (error) { 
-            console.log("error accoured while loading data => ", error);
-            reject(error)
-        }
-    })
-}
-
-function joinData(itemList) {
-    return new Promise(async(resolve, reject) => {
-        try {
-            //1. join user with avatar table
-            const joinAvatar = new join.Join(itemList, {tableName: "user_avatar", idName: "user_avatar_id", returnField: [
-                "user_avatar_id",
-                "user_avatar_order",
-                "user_avatar",
-            ]
-            });
-            const joinAvatarResult = await joinAvatar.returnJoin();
-
-            //2. return fullfied data
-            resolve(joinAvatarResult)
-        } catch(error) {
-            reject(error);
-        }
-    })
-}
-
-const loadDataListWithImage = async (dataList) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            let list = {};
-            let arrData = [];
-            Object.assign(list, JSON.parse(JSON.stringify(dataList)));
-            //
-            for (const [key, value] of Object.entries(list)) {
-                const res = await storage.getPresignUrl(value.user_avatar.user_avatar);
-                value.user_avatar.user_avatar_url = res.url
-                arrData.push(value);
-            }
-            resolve(arrData)
-        } catch (error) {
-            console.log("error accoured while loading data list with image => ", error);
-            reject(error);
-        }
-    })
-}
-
-
-
-async function handleDelete(id, profile_id) {
+async function loadDataList (offset = 0, limit = 10) {
     try {
-        const data = await client.mutate({
-            mutation: Models.User.delete,
-            variables: {
-                id: id
-            }
+        //1. load data student
+        const data = await nhost.graphql.request(Models.User.getAll, {
+            offset: offset,
+            limit: limit,
+            order_by: "asc"
         })
-
-        if(data) {
-            dataList.value = dataList.value.filter((item) => item.user_id !== id);
-            message.success("ລົບຂໍ້ມູນສຳເລັດ"); 
+        if(data.error) {
+            throw new Error(data.error);
         }
+        dataList.value = data.data.user_tb;
+    } catch (error) { 
+        console.log("error accoured while loading data => ", error);
+    }
+}
+
+
+
+
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
+    })
+    return publicUrl;
+}
+
+async function loadDataListWithImage (dataList) {
+    try {
+        let fecthArray = []
+        for(let i = 0; i < dataList.length; i++) {
+            fecthArray.push(fetchId(dataList[i].user_avatar.user_avatar))
+        }
+
+        const data = await Promise.all(fecthArray);
+        dataList.forEach((item, index) => {
+            item.user_avatar_url = data[index].presignedUrl.url
+        })
+    } catch (error) {
+        console.log("error accoured while loading data list with image => ", error);
+    }    
+}
+
+
+
+async function handleDelete(id) {
+    try {
+        const data = await nhost.graphql.request(Models.User.delete, {
+            id: id
+        })
+        if(data.error) {
+            throw new Error(data.error);
+        }
+
+        dataList.value = dataList.value.filter((item) => item.user_id !== id);
+        message.success("ລົບຂໍ້ມູນສຳເລັດ"); 
+
 
         //const result = await storage.remove(profile_id);
 
@@ -319,46 +296,34 @@ async function handleDelete(id, profile_id) {
             isEmpty.value = true;
         }
 
+        await loadApproveAllCount();
+
     } catch (error) {
         console.log("error accoured while delete item => ", error);
     }
 }
 
 async function loadApproveAllCount() {
-    return new Promise(async(resolve, reject) => {
         try {
-        const data = await client.query({
-            query: Models.User.countUserNotApproved
-        })
-        resolve(data.data.user_tb_aggregate.aggregate.count)
+        const data = await nhost.graphql.request(Models.User.countUserNotApproved);
+        if(data.error) {
+            throw new Error("can not load approve all count");
+        }
+        notApproveAllCount.value = data.data.user_tb_aggregate.aggregate.count;
         } catch (error) {
             console.log("error accoured while load approve all count => ", error);
-            reject(error)
         }
-    })
 }
 
 
 async function loadData () {
     try {
-        //1. load totalListCount
-        totalListCount.value = await loadTotalListCount();
-        if(totalListCount.value === 0){
-            isEmpty.value = true;
-            return;
-        }
-
-        //2. calulate total page
-        //totalPage.value = Math.ceil(totalListCount.value / limit);
-
-        //3. load approveAllCount
-        notApproveAllCount.value = await loadApproveAllCount();
 
         //4. load data list
-        dataList.value = await loadDataList(offset, limit);
+        await loadDataList();
 
         //5. load data list with image
-        dataList.value = await loadDataListWithImage(dataList.value);
+        await loadDataListWithImage(dataList.value);
 
 
     } catch (error) {
@@ -366,19 +331,17 @@ async function loadData () {
     }
 }
 
-loadData();
-
 async function approveUser(id) {
     try {
-        const data = await client.mutate({
-            mutation: Models.User.update,
-            variables: {
-                id: id,
-                object: {
-                    user_is_approved: true
-                }
+        const data = await nhost.graphql.request(Models.User.update, {
+            id: id,
+            object: {
+                user_is_approved: true
             }
         })
+
+        if(data.error) throw new Error("can not approve user");
+
         dataList.value.forEach(item => {
             if(item.user_id === id) {
                 item.user_is_approved = true
@@ -394,9 +357,10 @@ async function approveUser(id) {
 
 async function handleApproveAll() {
     try {
-        const data = await client.mutate({
-            mutation: Models.User.updateAllToApproved,
-        })
+        const data = await nhost.graphql.request(Models.User.updateAllToApproved);
+        if(data.error) {
+            throw new Error("can not approve all");
+        }
         message.success("ອະນຸມັດສຳເລັດແລ້ວ " + notApproveAllCount.value);
         notApproveAllCount.value = await loadApproveAllCount();
         handleSearch();
@@ -410,8 +374,9 @@ async function handleSearch() {
 
         loading.value = true;
 
-        const data = await client.query({
-            query: gql`
+        const data = await nhost.graphql.request(
+
+        `
 
                     query search  {
                         user_tb(where:
@@ -440,11 +405,21 @@ async function handleSearch() {
                             user_email
                             user_password
                             user_is_approved
+                            user_avatar {
+                            user_avatar_id
+                            user_avatar
+                            user_avatar_order
+                            }
                         }
                     }
 
             `
-        })
+
+        );
+
+        if(data.error) {
+            throw new Error("not able to search");
+        }
 
         if(data?.data?.user_tb.length == 0) {
             dataList.value = [];
@@ -454,8 +429,8 @@ async function handleSearch() {
         }
 
         isEmpty.value = false;
-        dataList.value = await joinData(data.data.user_tb);
-        dataList.value = await loadDataListWithImage(dataList.value);
+        dataList.value = data.data.user_tb;
+        await loadDataListWithImage(dataList.value);
         loading.value = false;
         
     } catch (error) {
@@ -471,6 +446,11 @@ watch([isApproved], async () => {
 
 watch(dataList, () => {
     totalListCount.value = dataList.value.length;
+})
+
+
+onMounted(async () => {
+    await Promise.all([loadTotalListCount(), loadApproveAllCount(), loadData()]);
 })
 
 </script>

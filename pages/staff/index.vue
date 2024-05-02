@@ -105,7 +105,7 @@
                                             </template>
                                         </n-button>
                                     </NuxtLink>
-                                    <n-popconfirm :show-icon="false" positive-text="ຢືນຍັນ" negative-text="ຍົກເລີກ" @positive-click="handleDelete(staff.staff_id, staff.staff_profile)">
+                                    <n-popconfirm :show-icon="false" positive-text="ຢືນຍັນ" negative-text="ຍົກເລີກ" @positive-click="handleDelete(staff.staff_id, staff.users_id, staff.staff_profile)">
                                         <template #activator>
                                             <n-button class="w-9 h-9 text-gray-500 group">
                                                 <template #icon>
@@ -146,6 +146,8 @@ import { NIcon } from "naive-ui";
 import { useMessage } from 'naive-ui';
 import Models from '../../model/index.js';
 
+const { nhost } = useNhost();
+
 const message = useMessage();
 const token = useCookie("token");
 const { client } = useApolloClient();
@@ -165,79 +167,61 @@ const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
 
-const loadTotalListCount = async () => {
-    return new Promise(async(resolve, reject) => {
+async function loadTotalListCount () {
         try {
-            const data = await client.query({
-                query: Models.Staff.countAll
-            })
-            if(data) {
-                const totolCount = data.data.staff_aggregate.aggregate.count;
-                resolve(totolCount)
+            const data = await nhost.graphql.request(Models.Staff.countAll)
+            if(data.error) {
+                throw new Error(data.error.message);
+            }
+            totalListCount.value = data.data.staff_aggregate.aggregate.count;
+            if(totalListCount.value === 0){
+                isEmpty.value = true;
+                return;
             }
         } catch (error) {
             console.log("error accoured while load total list count => ", error);
-            reject(error)
         }
-    })
 }
 
-const loadStaffData = async (offset = 0, limit = 10) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            const data = await client.query({
-                query: Models.Staff.getAll,
-                variables: {
-                    offset: offset,
-                    limit: limit
-                }
-            })
-            if(data) {
-                resolve(data.data.staff)
-            }
-        } catch (error) { 
-            console.log("error accoured while loading staff data => ", error);
-            reject(error)
-        }
-    })
+
+async function loadStaffData(offset = 0, limit = 10) {
+    try {
+        const resStaff = await nhost.graphql.request(Models.Staff.getAll, {
+            offset: offset,
+            limit: limit
+        })
+        staffData.value = resStaff.data.staff;
+    } catch (error) { 
+        console.log("error accoured while loading staff data => ", error);
+    }
 }
 
-const loadImageFormId = async (id) => {
-    return new Promise( async (resolve, reject) => {
-        try {
-            const respon = await $fetch(`https://blpbkifrpjcudrpgmsea.storage.ap-southeast-1.nhost.run/v1/files/${id}/presignedurl`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token.value}`
-                }
-            })
-            if(respon) {
-                resolve(respon.url);
-            }
-        } catch (error) {
-            console.log("error accoured while load image form id => ", error);
-            reject(error)
-        }
+
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
     })
+    return publicUrl;
 }
 
-const loadStaffDataWithImage = async (suffData) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            let staffList = {};
-            let arrStaff = [];
-            Object.assign(staffList, JSON.parse(JSON.stringify(suffData)));
-            for (const [key, value] of Object.entries(staffList)) {
-                value.staff_profile_url = await loadImageFormId(value.staff_profile);
-                arrStaff.push(value);
-            }
-            resolve(arrStaff)
-        } catch (error) {
-            console.log("error accoured while loading staff data with image => ", error);
-            reject(error);
+async function loadDataListWithImage(dataList, profileName) {
+    try {
+        let fecthArray = []
+        for(let i = 0; i < dataList.length; i++) {
+            fecthArray.push(fetchId(dataList[i][profileName]))
         }
-    })
+
+        const data = await Promise.all(fecthArray);
+        dataList.forEach((item, index) => {
+            item[`${profileName}_url`] = data[index].presignedUrl.url
+        })
+    } catch (error) {
+        console.log("error accoured while loading data list with image => ", error);
+    }
 }
+
 
 
 function mappingRole(role) {
@@ -262,22 +246,33 @@ const changePage = async (pageNumber) => {
 
 
 
-async function handleDelete(staff_id, profile_id) {
+async function handleDelete(staff_id, users_id, profile_id) {
     try {
-        const data = await client.mutate({
-            mutation: Models.Staff.delete,
-            variables: {
-                id: staff_id
-            }
+        //1. delete staff
+        const resStaff = await nhost.graphql.request(Models.Staff.delete, {
+            id: staff_id
         })
-
-        if(data) {
-            staffData.value = staffData.value.filter((item) => item.staff_id !== staff_id);
-            message.success("ລົບຂໍ້ມູນສຳເລັດ")
-            await fetchDataAfterDelete();    
+        if(resStaff.error) {
+            throw new Error(resStaff.error);
         }
 
-        const result = await deleteFile.handleDeleteFile(profile_id);
+        //1. delete users 
+        const resUsers = await nhost.graphql.request(Models.Users.delete, {
+            id: users_id
+        })
+        if(resUsers.error) {
+            throw new Error(resUsers.error);
+        }
+
+        
+        staffData.value = staffData.value.filter((item) => item.staff_id !== staff_id);
+
+        const resFile = await nhost.storage.delete({ fileId: profile_id })
+        if(resFile.error) {
+            throw new Error(resFile.error);
+        }
+
+        message.success("ລົບຂໍ້ມູນສຳເລັດ");
 
     } catch (error) {
         console.log("error accoured while delete staff => ", error);
@@ -285,54 +280,6 @@ async function handleDelete(staff_id, profile_id) {
 }
 
 
-async function fetchDataAfterDelete() {
-    try {
-        const deletedOnPage = currentPage.value;
-        const isLastItem = staffData.value.length == 0;
-
-        const isFirstPage = deletedOnPage == 1;
-        const isBetweenPage = (deletedOnPage > 1) && (deletedOnPage < totalPage.value);
-        const isLastPage = (deletedOnPage == totalPage.value);
-
-        totalListCount.value = totalListCount.value - 1;
-        totalPage.value = Math.ceil(totalListCount.value / limit);
-
-        if(totalListCount.value == 0) {
-            isEmpty.value = true;
-        }
-
-        if(isLastItem && isFirstPage) {
-            return;
-        }
-
-        if(isLastItem) {
-            currentPage.value = currentPage.value - 1;
-            let offset = (currentPage.value - 1) * limit;
-            staffData.value = await loadStaffData(offset, limit);
-            staffData.value = await loadStaffDataWithImage(staffData.value);
-            return;
-        }
-
-        if(isBetweenPage) {
-            await fetchNextData();
-            return;
-        }
-
-        if(isLastPage) {
-            return;
-        }
-
-        if(isFirstPage) {
-            await fetchNextData();
-            return;
-        }
-
-        return;
-        
-    } catch (error) {
-        console.log("error accoured in handleFetchDataAfterDelete => ", error);
-    }
-}
 
 async function fetchNextData() {
     try {
@@ -347,43 +294,58 @@ async function fetchNextData() {
 
 async function loadData () {
     try {
-        //1. load totalListCount
-        totalListCount.value = await loadTotalListCount();
-        if(totalListCount.value === 0){
-            isEmpty.value = true;
-            return;
-        }
 
         //2. calulate total page
-        totalPage.value = Math.ceil(totalListCount.value / limit);
+        //totalPage.value = Math.ceil(totalListCount.value / limit);
 
         //3. load staff data
-        staffData.value = await loadStaffData(offset, limit);
+        await loadStaffData(offset, limit);
 
+        await loadDataListWithImage(staffData.value, "staff_profile");
         //4. load staff data with image
-        staffData.value = await loadStaffDataWithImage(staffData.value);
+        //staffData.value = await loadStaffDataWithImage(staffData.value);
         
     } catch (error) {
         console.log("error accoured while load data => ", error);
     }
 }
 
-loadData();
+//loadData();
 
 async function handleSearch() {
     try {
-        const data = await client.query({
-            query: Models.Staff.search,
-            variables: {
-                strText: `%${searchText.value}%`,
-                phone: (isNaN(searchText.value)) ? 0 : Number(searchText.value)
-            }
+        const resStaff = await nhost.graphql.request(Models.Staff.search, {
+            strText: `%${searchText.value}%`,
+            phone: (isNaN(searchText.value)) ? 0 : Number(searchText.value)
         })
-        staffData.value = data.data.staff;
-        staffData.value = await loadStaffDataWithImage(staffData.value);
+        if(resStaff.error) {
+            throw new Error(resStaff.error);
+        }
+        staffData.value = resStaff.data.staff;
+        await loadDataListWithImage(staffData.value, "staff_profile");
+
+        if(staffData.value.length == 0) {
+            isEmpty.value = true;
+            return;
+        }
+
+        isEmpty.value = false;
+
     } catch (error) {
         console.log("error accoured while search staff => ", error);
     }
 }
+
+
+onMounted(async () => {
+    await Promise.all([
+        loadTotalListCount(),
+        loadData()
+    ]);
+})
+
+watch(staffData, () => {
+    totalListCount.value = staffData.value.length;
+})
 
 </script>

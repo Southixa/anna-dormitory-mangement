@@ -66,5 +66,13 @@ export default defineNuxtConfig({
   },
   app: {
     pageTransition: { name: 'page', mode: 'out-in' }
-  }
+  },
+  runtimeConfig: {
+    public: { // For client-side access
+      NHOST_SUBDOMAIN: process.env.NHOST_SUBDOMAIN + "",
+      NHOST_REGION: process.env.NHOST_REGION + "",
+      TOKEN_NANE: process.env.TOKEN_NANE + "",
+    },
+  },
+  ssr: false
 })

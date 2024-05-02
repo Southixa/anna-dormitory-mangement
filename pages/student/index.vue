@@ -106,7 +106,6 @@
                                         width="100%"
                                         object-fit="cover"
                                     />
-                                    
                                     <n-skeleton v-else circle class="w-full h-full" />
                                 </div>
                             </td>
@@ -182,6 +181,8 @@ import { useMessage } from 'naive-ui';
 import Models from '../../model/index.js';
 import { watch } from 'vue';
 
+const { nhost } = useNhost();
+
 const message = useMessage();
 const token = useCookie("token");
 const { client } = useApolloClient();
@@ -251,39 +252,33 @@ const renderIconDone = () => h(NIcon, null, { default: () => h(DoneFilled) });
 const renderIconAdd = () => h(NIcon, null, { default: () => h(Add) });
 
 
-const loadTotalListCount = async () => {
-    return new Promise(async(resolve, reject) => {
+async function loadTotalListCount () {
         try {
-            const data = await client.query({
-                query: Models.Student.countAll
-            })
-            if(data) {
-                const totolCount = data.data.student_aggregate.aggregate.count;
-                resolve(totolCount)
+            const data = await nhost.graphql.request(Models.Student.countAll)
+            if(data.error) {
+                throw new Error(data.error.message);
+            }
+            totalListCount.value = data.data.student_aggregate.aggregate.count;
+            if(totalListCount.value === 0){
+                isEmpty.value = true;
+                return;
             }
         } catch (error) {
             console.log("error accoured while load total list count => ", error);
-            reject(error)
         }
-    })
 }
 
 const loadDataList = async (offset = 0, limit = 10) => {
     return new Promise(async(resolve, reject) => {
         try {
             //1. load data student
-            const data = await client.query({
-                query: Models.Student.getAll,
-                variables: {
-                    offset: offset,
-                    limit: limit
-                }
+            const data = await nhost.graphql.request(Models.Student.getAll, {
+                offset: offset,
+                limit: limit
             })
-
             
-            if(data) {
-                const joinedData = await joinData(data.data.student);
-                resolve(joinedData)
+            if(!data.error) {
+                resolve(data.data.student)
             }
         } catch (error) { 
             console.log("error accoured while loading data => ", error);
@@ -292,45 +287,29 @@ const loadDataList = async (offset = 0, limit = 10) => {
     })
 }
 
-function joinData(itemList) {
-    return new Promise(async(resolve, reject) => {
-        try {
-            //1. join student with major
-            const joinMajor = new join.Join(itemList, {tableName: "major", idName: "major_id", returnField: [
-                "major_id",
-                "major_name",
-            ]
-            });
-            const joinMajorResult = await joinMajor.returnJoin();
 
-            //2. join student with degree
-            const joinDegree = new join.Join(joinMajorResult, {tableName: "degree_type", idName: "degree_type_id", returnField: [
-                "degree_type_id",
-                "degree_type_name",
-            ]
-            });
-            const joinDegreeResult = await joinDegree.returnJoin();
-
-            //3. return fullfied data
-            resolve(joinDegreeResult)
-        } catch(error) {
-            reject(error);
-        }
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
     })
+    return publicUrl;
 }
 
 const loadDataListWithImage = async (dataList, profileName) => {
     return new Promise(async(resolve, reject) => {
         try {
-            let list = {};
-            let arrData = [];
-            Object.assign(list, JSON.parse(JSON.stringify(dataList)));
-            for (const [key, value] of Object.entries(list)) {
-                const res = await storage.getPresignUrl(value[profileName]);
-                value[`${profileName}_url`] = res.url
-                arrData.push(value);
+            let fecthArray = []
+            for(let i = 0; i < dataList.length; i++) {
+                fecthArray.push(fetchId(dataList[i][profileName]))
             }
-            resolve(arrData)
+
+            const data = await Promise.all(fecthArray);
+            dataList.forEach((item, index) => {
+                item[`${profileName}_url`] = data[index].presignedUrl.url
+            })
+            resolve("done")
         } catch (error) {
             console.log("error accoured while loading data list with image => ", error);
             reject(error);
@@ -342,19 +321,20 @@ const loadDataListWithImage = async (dataList, profileName) => {
 
 async function handleDelete(id, profile_id) {
     try {
-        const data = await client.mutate({
-            mutation: Models.Student.delete,
-            variables: {
-                id: id
-            }
+        const data = await nhost.graphql.request(Models.Student.delete, {
+            id: id
         })
+        if(data.error) {
+            message.error("ບໍ່ສາມາດລົບໄດ້ ນັກສຶກສາທີ່ມີລາຍຊື່ໃນບົດຈົບ");
+            throw new Error("can not delete on used student");
+        }
 
-        if(data) {
+        if(data.data) {
             dataList.value = dataList.value.filter((item) => item.student_id !== id);
             message.success("ລົບຂໍ້ມູນສຳເລັດ"); 
         }
 
-        const result = await storage.remove(profile_id);
+        const result = await nhost.storage.delete({ fileId: profile_id });
 
         if(totalListCount.value === 0 || dataList.value.length === 0) {
             isEmpty.value = true;
@@ -362,19 +342,12 @@ async function handleDelete(id, profile_id) {
 
     } catch (error) {
         console.log("error accoured while delete item => ", error);
-        message.success("ບໍ່ສາມາດລົບໄດ້ ເນື່ອງຈາກມີລາຍຊື່ໃນບົດຄົ້ນຄວ້າ"); 
     }
 }
 
 
 async function loadData () {
     try {
-        //1. load totalListCount
-        totalListCount.value = await loadTotalListCount();
-        if(totalListCount.value === 0){
-            isEmpty.value = true;
-            return;
-        }
 
         //2. calulate total page
         //totalPage.value = Math.ceil(totalListCount.value / limit);
@@ -383,22 +356,24 @@ async function loadData () {
         dataList.value = await loadDataList(offset, limit);
 
         //4. load data list with image
-        dataList.value = await loadDataListWithImage(dataList.value, "student_profile");
+        await loadDataListWithImage(dataList.value, "student_profile");
+        //console.log("ddone");
         
     } catch (error) {
         console.log("error accoured while load data => ", error);
     }
 }
 
-loadData();
+
 
 async function handleSearch() {
     try {
 
         loading.value = true;
 
-        const data = await client.query({
-            query: gql`
+        const data = await nhost.graphql.request(
+
+        `
 
                     query search  {
                         student(where:
@@ -429,11 +404,20 @@ async function handleSearch() {
                             student_email
                             major_id
                             degree_type_id
+                            major {
+                            major_name
+                            major_id
+                            }
+                            degree_type {
+                            degree_type_id
+                            degree_type_name
+                            }
                         }
                     }
 
             `
-        })
+
+        )
 
         if(data?.data?.student.length == 0) {
             dataList.value = [];
@@ -443,8 +427,8 @@ async function handleSearch() {
         }
 
         isEmpty.value = false;
-        dataList.value = await joinData(data.data.student);
-        dataList.value = await loadDataListWithImage(dataList.value, "student_profile");
+        dataList.value = data.data.student;
+        await loadDataListWithImage(dataList.value, "student_profile");
         loading.value = false;
         
     } catch (error) {
@@ -453,51 +437,57 @@ async function handleSearch() {
     }
 }
 
-async function loadSelectData() {
-    try {
-        //1. defalut value
-        const defaulValue = {
-            label: "ທັງໝົດ",
-            value: "all"
-        }
 
-        //2. load major data
-        const resMajor = await client.query({
-            query: Models.Major.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
+
+const defaulValue = {
+    label: "ທັງໝົດ",
+    value: "all"
+}
+
+async function loadSelectMajor() {
+    try {
+        const resMajor = await nhost.graphql.request(Models.Major.getAll, {
+            offset: 0,
+            limit: null
         })
-        if(resMajor) {
+        if(!resMajor.error) {
             const majorList = resMajor.data.major.map((item, index) => ({
                 label: item.major_name,
                 value: item.major_id,
             }))
             majorOptions.value = [defaulValue, ...majorList];
         }
+    } catch (error) {
+        console.log("error accoured while load select major => ", error);
+    }
+}
 
-        //3. load degree data
-        const resDegree = await client.query({
-            query: Models.Degree.getAll,
-            variables: {
-                offset: 0,
-                limit: null
-            }
+
+
+async function loadSelectDegree() {
+    try {
+        const resDegree = await nhost.graphql.request(Models.Degree.getAll, {
+            offset: 0,
+            limit: null
         })
-        if(resDegree) {
+        if(!resDegree.error) {
             const degreeList = resDegree.data.degree_type.map((item, index) => ({
                 label: item.degree_type_name,
                 value: item.degree_type_id,
             }))
             degreeOptions.value = [defaulValue, ...degreeList];
         }
-    } catch(error) {
-        console.log("error occured in loadSelectData => " + error);
+    } catch (error) {
+        console.log("error accoured while load select major => ", error);
     }
 }
 
-loadSelectData();
+
+
+onMounted(async () => {
+    await Promise.all([loadSelectMajor(), loadSelectDegree(), loadData(), loadTotalListCount()]);
+    console.log("ok");
+})
 
 watch([major, degree, gender], async () => {
     await handleSearch();

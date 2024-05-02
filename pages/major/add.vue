@@ -42,7 +42,7 @@ import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
 
 
-
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
 
@@ -75,17 +75,14 @@ async function handleAdd() {
         loading.value = true;
 
         //3. insert input
-        const resInsert =  await client.mutate({
-            mutation: Models.Major.insert,
-            variables: {
-                object: {
-                    major_name: formValue.value.name,
-                }
+
+        const resInsert = await nhost.graphql.request(Models.Major.insert, {
+            object: {
+                major_name: formValue.value.name,
             }
-        }).catch(async (error)=>{return error});
+        })
 
-
-        if(!resInsert?.data) {
+        if(resInsert.error) {
             message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
             throw new Error('cannot save data => ' + resInsert);
         }

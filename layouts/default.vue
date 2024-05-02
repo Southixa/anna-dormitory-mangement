@@ -70,28 +70,28 @@ const navMenuList = [
   },
   {
     name: 'ຂໍ້ມູນສາຂາຮຽນ',
-    icon: 'entypo:bar-graph',
-    size: '24',
+    icon: 'vaadin:connect',
+    size: '22',
     path: '/major',
     pageTitle: 'ຈັດການຂໍ້ມູນສາຂາຮຽນ'
   },
   {
     name: 'ຂໍ້ມູນບົດຈົບ',
-    icon: 'bi:people-fill',
+    icon: 'ri:book-fill',
     size: '24',
     path: '/thesis',
     pageTitle: 'ຈັດການບົດຈົບທັງໝົດ'
   },
   {
     name: 'ຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ',
-    icon: 'ph:student-fill',
+    icon: 'clarity:administrator-solid',
     size: '24',
     path: '/staff',
     pageTitle: 'ຈັດການຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ'
   },
   {
     name: 'ອອກຈາກລະບົບ',
-    icon: 'ph:student-fill',
+    icon: 'lucide:log-out',
     size: '24',
     path: '/login',
     pageTitle: 'ເຂົ້າສູ່ລະບົບ'

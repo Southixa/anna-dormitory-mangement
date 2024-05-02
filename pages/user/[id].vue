@@ -118,6 +118,8 @@ import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
 import { useApolloClient } from '@vue/apollo-composable';
 
+const { nhost } = useNhost();
+
 const message = useMessage();
 const token = useCookie("token");
 const { client } = useApolloClient();
@@ -175,27 +177,24 @@ async function handleUpdate() {
         loading.value = true;
 
         //4. update input
-        const resUpdate =  await client.mutate({
-            mutation: Models.User.update,
-            variables: {
-                id: id,
-                object: {
-                    user_avatar_id: avatar.value.user_avatar_id,
-                    user_firstname: formValue.value.firstname,
-                    user_lastname: formValue.value.lastname,
-                    user_phone: formValue.value.phone,
-                    user_email: formValue.value.email,
-                    user_password: formValue.value.password,
-                    user_is_approved: (formValue.value.isApproved == "true"),
-                }
+        const resUpdate = await nhost.graphql.request(Models.User.update, {
+            id: id,
+            object: {
+                user_avatar_id: avatar.value.user_avatar_id,
+                user_firstname: formValue.value.firstname,
+                user_lastname: formValue.value.lastname,
+                user_phone: formValue.value.phone,
+                user_email: formValue.value.email,
+                user_password: formValue.value.password,
+                user_is_approved: (formValue.value.isApproved == "true"),
             }
-        }).catch(async (error)=>{return error});
-        
-        
-        if(!resUpdate?.data) {
+        })
+
+        if(resUpdate.error){
             message.error("ອັບແດດຂໍ້ມູນບໍ່ສຳເລັດ")
-            throw new Error('cannot save data => ' + resUpdate);
+            throw new Error('cannot save data => ' + resUpdate.error);
         }
+        
 
         //5. success
         message.success("ອັບແດດຂໍ້ມູນແລ້ວ")
@@ -207,33 +206,16 @@ async function handleUpdate() {
     }
 }
 
-const loadDataListWithImage = async (dataList, profileName) => {
-    return new Promise(async(resolve, reject) => {
-        try {
-            let list = {};
-            let arrData = [];
-            Object.assign(list, JSON.parse(JSON.stringify(dataList)));
-            for (const [key, value] of Object.entries(list)) {
-                const res = await storage.getPresignUrl(value[profileName]);
-                value[`${profileName}_url`] = res.url
-                arrData.push(value);
-            }
-            resolve(arrData)
-        } catch (error) {
-            console.log("error accoured while loading data list with image => ", error);
-            reject(error);
-        }
-    })
-}
+
 
 async function loadUserData () {
     try {
-        const resUser = await client.query({
-            query: Models.User.getOne,
-            variables: {
-                id: id
-            }
+        const resUser = await nhost.graphql.request(Models.User.getOne, {
+            id: id
         })
+
+        if(resUser.error) throw new Error('cannot load data => ' + resUser);
+
         const userData = resUser.data.user_tb_by_pk;
         formValue.value.firstname = userData.user_firstname;
         formValue.value.lastname = userData.user_lastname;
@@ -251,33 +233,61 @@ async function loadUserData () {
 }
 
 
-async function loadData () {
+const fetchId = async (id) => {
+    const publicUrl = await nhost.storage.getPresignedUrl({ 
+        fileId: id,
+        height: 200,
+        width: 200
+    })
+    return publicUrl;
+}
+
+async function loadDataListWithImage (dataList, profileName) {
+        try {
+            let tempDataList = [...dataList];
+            let fecthArray = []
+            for(let i = 0; i < dataList.length; i++) {
+                fecthArray.push(fetchId(dataList[i][profileName]))
+            }
+
+            const data = await Promise.all(fecthArray);
+            dataList.forEach((item, index) => {
+                item[`${profileName}_url`] = data[index].presignedUrl.url
+            })
+            console.log(dataList);
+        } catch (error) {
+            console.log("error accoured while loading data list with image => ", error);
+        }
+}
+
+
+async function loadAvatar() {
     try {
-        //1. load user avatar
-        const resUserAvatarList = await client.query({
-            query: Models.User_avatar.getAll
-        })
+        const resUserAvatarList = await nhost.graphql.request(Models.User_avatar.getAll);
+
+        if(resUserAvatarList.error) throw new Error(resUserAvatarList.error.message);
+
         userAvatarList.value = resUserAvatarList.data.user_avatar;
-
-        //2. load user avatar with image
-        const resUserAvatarListWithImage = await loadDataListWithImage(resUserAvatarList.data.user_avatar, "user_avatar");
-        //avatar.value = resUserAvatarListWithImage[0];
-        userAvatarList.value = resUserAvatarListWithImage
-
-        //3. load user data
-        loadUserData();
-        
-
+        await loadDataListWithImage(userAvatarList.value, "user_avatar");
     } catch (error) {
-        console.log("eroor occured in loadData => " + error);
+        console.log("eroor occured in loadAvatar => " + error);
     }
 }
+
+
 
 function selectImage (data) {  
     avatar.value = data;
 }
 
-loadData();
+
+
+onMounted(async () => {
+    loading.value = true;
+    await Promise.all([loadAvatar()]);
+    await loadUserData();
+    loading.value = false;
+})
 
 
 </script>

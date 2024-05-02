@@ -113,9 +113,10 @@ import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
 import Rules from '../../utils/rule/index.js';
 import Models from '../../model/index.js';
+import { NhostClient } from "@nhost/vue";
 
 
-
+const { nhost } = useNhost();
 
 const { client } = useApolloClient();
 
@@ -154,7 +155,7 @@ const rules = Rules.Staff;
 
 async function handleAdd() {
     try {
-        formValue.value.firstname = (Number(formValue.value.firstname) + 1) + "";
+        //formValue.value.firstname = (Number(formValue.value.firstname) + 1) + "";
         //1. check validate input
         const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
         if(invalidField.length > 0) {
@@ -171,34 +172,54 @@ async function handleAdd() {
         //3. disable all input
         loading.value = true;
 
-        //4. insert image
-        const imageId = await uploadFile.handleUploadFile(imageUpload.value);
-        if(!imageId) {
+
+        //4. insert users
+        const resUsers = await $fetch('https://blpbkifrpjcudrpgmsea.auth.ap-southeast-1.nhost.run/v1/signup/email-password', {
+            method: 'POST',
+            body: {
+                email: formValue.value.email,
+                password: formValue.value.password
+            }
+        }).catch((error) => {
+            message.error("ອີເມວຖືກໃຊ້ແລ້ວ")
+            formValue.value.email = "";
+            throw new Error('Email alrealy in use => ' + error);
+        });
+        
+        const usersId = resUsers.session.user.id;
+
+
+        //5. insert image
+        const resFile = await nhost.storage.upload({ file: imageUpload.value })
+        if(resFile.error) {
             message.error("ບໍ່ສາມາດອັບໂຫຼດຮູບາບໄດ້")
-            throw new Error('cannot upload image');
+            throw new Error('cannot upload image => ' + resFile.error)
         }
 
-        //5. insert input
-        const res =  await client.mutate({
-            mutation: Models.Staff.insert,
-            variables: {
-                object: {
+        const imageId = resFile.fileMetadata.id;
+
+
+
+        //6. insert input
+        const resStaff = await nhost.graphql.request(Models.Staff.insert, {
+            object: {
                     staff_profile: imageId,
                     staff_firstname: formValue.value.firstname,
                     staff_lastname: formValue.value.lastname,
                     staff_phone: formValue.value.phone,
                     staff_email: formValue.value.email,
                     staff_password: formValue.value.password,
-                    staff_role: formValue.value.role
-                }
+                    staff_role: formValue.value.role,
+                    users_id: usersId
             }
-        }).catch(async (error)=>{return error});
-        if(!res?.data) {
+        })
+        if(resStaff.error) {
             message.error("ບັນທຶກຂໍ້ມູນບໍ່ສຳເລັດ")
-            throw new Error('cannot save data => ' + res);
+            throw new Error('cannot save data => ' + resStaff);
         }
 
-        //6. success
+
+        //7. success
         message.success("ບັນທຶກຂໍ້ມູນສຳເລັດ")
         loading.value = false;
 

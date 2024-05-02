@@ -48,7 +48,6 @@
                 <n-button type="primary" class="w-full mt-12 mb-8" color="#002749" @click="handleLogin" :loading="loading">
                     ເຂົ້າສູ່ລະບົບ
                 </n-button>
-                {{ formValue }}
             </div>
         </div>
     </div>
@@ -68,8 +67,8 @@ const message = useMessage();
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    email: "",
-    password: "",
+    email: "southixa.pele10@gmail.com",
+    password: "12345678",
 })
 
 const rules = {
@@ -96,37 +95,49 @@ const loading = ref(false);
 
 const cookie = useCookie('token')
 
+import { NhostClient } from "@nhost/vue";
+import { onMounted } from 'vue';
+
+const runtimeConfig = useRuntimeConfig();
+
+const nhost = new NhostClient({
+    subdomain: runtimeConfig.public.NHOST_SUBDOMAIN,
+    region: runtimeConfig.public.NHOST_REGION
+});
+
 async function handleLogin(e) {
     e.preventDefault();
     try{
-        const warining = await formRef.value?.validate( async (errors) => {
-            if(!errors) {
-                loading.value = true;
-                try {
-                    const respon = await $fetch('https://blpbkifrpjcudrpgmsea.auth.ap-southeast-1.nhost.run/v1/signin/email-password', {
-                        method: 'POST',
-                        body: formValue.value
-                    })
-                    if(respon?.session) {
-                        cookie.value = respon.session.accessToken;
-                        loading.value = false;
-                        message.success("ເຂົ້າສູ່ລະບົບສຳເລັດ")
-                        await navigateTo({ path: '/dashboard' });
-                        return;
-                    }
-                } catch (error) {
-                    console.log("error occured when try to send request login");
-                    loading.value = false;
-                    message.error("ຂໍ້ມູນບໍ່ຖືກຕ້ອງ")
-                }
-            } else {
-                message.error("ກະລຸນາ ໃສ່ຂໍ້ມູນ")
-            }
-        });
+        loading.value = true;
+        const warining = await formRef.value?.validate().catch((error)=>{return error;})
+        if(warining.length > 0) {
+            message.error("ຂໍ້ມູນບໍ່ຖືກຕ້ອງ")
+            console.log(warining)
+            throw new Error('invalid input => ' + warining);
+        }
+
+        //await nhost.auth.signOut();
+        const res = await nhost.auth.signIn(formValue.value)
+        if(res.error){
+            message.error("ຂໍ້ມູນບໍ່ຖືກຕ້ອງ")
+            throw new Error('invalid input => ' + error)
+        }
+        message.success("ເຂົ້າສູ່ລະບົບສຳເລັດ")
+        cookie.value = res.session.accessToken;
+        loading.value = false;
+        await navigateTo({ path: '/dashboard' });
+
     } catch (error) {
+        loading.value = false;
         console.log("error occured in handleLogin method => ", error);
     }
 }
 
+
+onMounted(async () => {
+    cookie.value = "";
+    await nhost.auth.signOut();
+    console.log("auto signout");
+})
 
 </script>

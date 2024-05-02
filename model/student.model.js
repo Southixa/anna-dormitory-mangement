@@ -21,19 +21,28 @@ const Student = {
     }
     `,
     getAll: gql`
-      query student($offset: Int, $limit: Int) {
-        student(offset: $offset, limit: $limit) {
-            student_id
-            student_profile
-            student_firstname
-            student_lastname
-            student_gender
-            student_phone
-            student_email
-            major_id
-            degree_type_id
+        query student($offset: Int, $limit: Int) {
+            student(offset: $offset, limit: $limit) {
+                student_id
+                student_profile
+                student_firstname
+                student_lastname
+                student_gender
+                student_phone
+                student_email
+                major_id
+                degree_type_id
+                major {
+                major_name
+                major_id
+                }
+                degree_type {
+                degree_type_id
+                degree_type_name
+                }
+            }
         }
-    }
+
     `
     ,
     getOne: gql`

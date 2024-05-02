@@ -7,6 +7,7 @@ import User from "./user.model.js";
 import Thesis_type from "./thesis_type.model.js";
 import Thesis from "./thesis.model.js";
 import Thesis_student_member_list from "./thesis_student_member_list.model.js";
+import Users from "./users.model.js";
 
 const Models = {
     Staff,
@@ -17,6 +18,7 @@ const Models = {
     User,
     Thesis_type,
     Thesis,
-    Thesis_student_member_list
+    Thesis_student_member_list,
+    Users
 }
 export default Models;
