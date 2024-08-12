@@ -16,13 +16,13 @@
         </div>
         <div class="w-full grid grid-cols-3">
             <div>
-                <nuxt-link to="/staff" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
+                <nuxt-link to="/customer" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
                     <Icon name="mingcute:left-fill" class="text-gray-500" size="20" />
                     <p class="text-lg font-normal text-gray-600">ກັບຄືນ</p>
                 </nuxt-link>
             </div>
             <div class="flex justify-center items-center">
-                <p class="text-xl font-medium text-gray-600">ເພີ່ມຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ</p>
+                <p class="text-xl font-medium text-gray-600">ເພີ່ມຂໍ້ມູນຜູ້ເຊົ່າ</p>
             </div>
             <div></div>
         </div>
@@ -45,10 +45,18 @@
             :rules="rules"
             :size="size"
             >
-                <n-form-item label="ຊື່" path="username">
+                <n-form-item label="ຊື່" path="firstname">
                     <n-input 
                     placeholder="ປ້ອນຊື່..." 
-                    v-model:value="formValue.username"
+                    v-model:value="formValue.firstname"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ນາມສະກຸນ" path="lastname">
+                    <n-input 
+                    placeholder="ປ້ອນນາມສະກຸນ..." 
+                    v-model:value="formValue.lastname"
                     @keydown.enter.prevent
                     :disabled="loading"
                     />
@@ -61,11 +69,43 @@
                     :disabled="loading"
                     />
                 </n-form-item>
-                <n-form-item label="ສິດ" path="role">
+                <n-form-item label="ເພດ" path="gender">
                     <n-select 
                     placeholder="--ເລືອກ--"
-                    v-model:value="formValue.role" 
-                    :options="roleOptions" 
+                    v-model:value="formValue.gender" 
+                    :options="genderOptions" 
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ເລກບັດປະຈຳໂຕ" path="identificationId">
+                    <n-input 
+                    placeholder="ປ້ອນເລກບັດປະຈຳໂຕ..." 
+                    v-model:value="formValue.identificationId"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ແຂວງ" path="province">
+                    <n-input 
+                    placeholder="ປ້ອນແຂວງ..." 
+                    v-model:value="formValue.province"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ເມືອງ" path="district">
+                    <n-input 
+                    placeholder="ປ້ອນເມືອງ..." 
+                    v-model:value="formValue.district"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ບ້ານ" path="village">
+                    <n-input 
+                    placeholder="ປ້ອນເມືອງ..." 
+                    v-model:value="formValue.village"
+                    @keydown.enter.prevent
                     :disabled="loading"
                     />
                 </n-form-item>
@@ -88,7 +128,7 @@
             </n-form>
 
             <div class="flex justify-center gap-4 mt-14 mb-4">
-                <NuxtLink to="/staff">
+                <NuxtLink to="/customer">
                     <n-button :disabled="loading" tertiary color="#002749" size="medium" class="w-40 shadow font-normal">
                         ຍົກເລີກ
                     </n-button>
@@ -110,7 +150,7 @@
 import { onMounted } from 'vue';
 import Rules from '../../utils/rule/index.js';
 
-const { getOneByGmail, getOneByPhoneNumber, add } = useStaff();
+const { add, getOneByGmail } = useCustomer();
 import { useMessage } from "naive-ui";
 import Models from "~/model";
 const message = useMessage();
@@ -141,14 +181,14 @@ const handleUploadChange = (options) => {
 
 const items = [
     {
-        title: 'ຜູ້ໃຊ້ລະບົບ',
+        title: 'ຜູ້ເຊົ່າ',
         disabled: false,
-        href: '/staff',
+        href: '/customer',
     },
     {
-        title: 'ເພີ່ມຜູ້ໃຊ້ລະບົບ',
+        title: 'ເພີ່ມຜູ້ເຊົ່າ',
         disabled: true,
-        href: '/staff/add',
+        href: '/customer/add',
     },
 ];
 
@@ -156,24 +196,33 @@ const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
     profile: "test",
-    username: "southixa",
+    firstname: "southixa",
+    lastname: "philavong",
     phone: "557484938",
-    role: "user",
+    gender: "ຊາຍ",
+    identificationId: "325234342342343",
+    province: "vientiane",
+    district: "nasaiythong",
+    village: "sekert",
     email: "southixa.pele10@gmail.com",
     password: "12345678",
 })
 
-const roleOptions =  ref([
+const genderOptions =  ref([
     {
-        label: 'admin',
-        value: 'user'
+        label: 'ຊາຍ',
+        value: 'ຊາຍ',
+    },
+    {
+        label: 'ຍິງ',
+        value: 'ຍິງ'
     },
 ]);
 
 const loading = ref(false);
 
 
-const rules = Rules.Staff;
+const rules = Rules.Customer;
 
 async function handleAdd () {
 
@@ -205,28 +254,15 @@ async function handleAdd () {
         return;
     }
 
-    // check phoneNumber
-    const resGetOneByPhoneNumber = await getOneByPhoneNumber(formValue.value.phone);
-    console.log("resGetOneByPhoneNumber", resGetOneByPhoneNumber);
-    if(!resGetOneByPhoneNumber) {
-        loading.value = false;
-        return;
-    }
-    if(resGetOneByPhoneNumber.length > 0) {
-        message.error("ເບີໂທນີ້ຖືກໃຊ້ແລ້ວ")
-        loading.value = false;
-        return;
-    }
-
     formValue.value.profile = fileList.value[0].file;
 
-    const resAddStaff = await add(formValue.value);
-    if(!resAddStaff) {
+    const resAddCustomer = await add(formValue.value);
+    if(!resAddCustomer) {
         loading.value = false;
         return;
     }
     loading.value = false;
-    await navigateTo('/staff');
+    await navigateTo('/customer');
 }
 
 

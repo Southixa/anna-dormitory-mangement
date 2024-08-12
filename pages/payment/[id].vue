@@ -1,0 +1,300 @@
+<template>
+    <div class="w-full mt-4">
+        <div>
+            <v-breadcrumbs :items="items">
+                <template v-slot:prepend>
+                </template>
+            </v-breadcrumbs>
+        </div>
+        <div class="w-full grid grid-cols-3">
+            <div>
+                <nuxt-link to="/payment" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
+                    <Icon name="mingcute:left-fill" class="text-gray-500" size="20" />
+                    <p class="text-lg font-normal text-gray-600">ກັບຄືນ</p>
+                </nuxt-link>
+            </div>
+            <div class="flex justify-center items-center">
+                <p class="text-xl font-medium text-gray-600">ແກ້ໄຂຂໍ້ມູນເດືອນທີ່ຕອ້ງຊຳລະ</p>
+            </div>
+            <div></div>
+        </div>
+        <div class="w-[500px] bg-white shadow-md border border-gray-50 mx-auto mt-4 rounded-md mb-20 p-4">
+            <n-form
+            ref="formRef"
+            :label-width="80"
+            :model="formValue"
+            :rules="rules"
+            :size="size"
+            >
+                <n-form-item label="ເດືອນ" path="month">
+                    <n-select 
+                    placeholder="--ເລືອກ--"
+                    v-model:value="formValue.month" 
+                    :options="monthOptions" 
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ປີ" path="year">
+                    <n-select 
+                    placeholder="--ເລືອກ--"
+                    v-model:value="formValue.year" 
+                    :options="yearOptions" 
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ຊີ່ທະນາຄານ" path="accountBankName">
+                    <n-input 
+                    placeholder="ປ້ອນຊື່ທະນາຄານ..." 
+                    v-model:value="formValue.accountBankName"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ເລກບັນຊີທະນາຄານ" path="accountNumber">
+                    <n-input 
+                    placeholder="ປ້ອນເລກບັນຊີທະນາຄານ..." 
+                    v-model:value="formValue.accountNumber"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ຊື່ເຈົ້າຂອງເລກບັນຊີ" path="accountName">
+                    <n-input 
+                    placeholder="ປ້ອນຊື່ເຈົ້າຂອງເລກບັນຊີ..." 
+                    v-model:value="formValue.accountName"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                
+            </n-form>
+
+            <p>ຮູບ QR-Code ບັນຊີ</p>
+            
+                    <n-upload
+                        @change="handleUploadChange"
+                        class="w-full flex justify-center items-center mb-20"
+                        :max="1"
+                        :default-upload="false"
+                        :file-list="fileList"
+                        list-type="image-card"
+                    />
+
+            <div class="flex justify-center gap-4 mt-14 mb-4">
+                <NuxtLink to="/payment">
+                    <n-button :disabled="loading" tertiary color="#002749" size="medium" class="w-40 shadow font-normal">
+                        ຍົກເລີກ
+                    </n-button>
+                </NuxtLink>
+                <n-button @click="handleEdit" :loading="loading" type="primary" class="w-40 shadow font-normal text-white" size="medium">
+                    ບັນທຶກ
+                </n-button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+
+</style>
+
+<script setup>
+
+import { onMounted } from 'vue';
+import Rules from '../../utils/rule/index.js';
+
+const { add, getOneByMonthAndYear, getOne, updateWithImage, update } = usePayment();
+const { getUrl } = useFile();
+import { useMessage } from "naive-ui";
+import Models from "~/model";
+const message = useMessage();
+
+const showModal = ref(false);
+const previewImageUrl = ref("");
+
+
+const { id } = useRoute().params;
+
+
+const fileList = ref([
+]);
+
+const handleUploadChange = (options) => {
+    const { file, event } = options;
+    if(file.status === "removed") {
+        isImageChanged.value = true;
+        fileList.value = [];
+        return;
+    }
+
+    // filter file.type only png, jpg, jpeg
+    if(file.type !== "image/png" && file.type !== "image/jpg" && file.type !== "image/jpeg") {
+        message.error("ອັບໂຫຼດແຕ່ສະເພາະຮູບທຳນັ້ນ");
+    }
+
+    isImageChanged.value = true;
+    fileList.value = [file];
+};
+
+
+const items = [
+    {
+        title: 'ການຊຳລະເງິນ',
+        disabled: false,
+        href: '/payment',
+    },
+    {
+        title: 'ແກ້ໄຂການຊຳລະເງິນ',
+        disabled: true,
+        href: '/payment/add',
+    },
+];
+
+const currentMonth = new Date().getMonth() + 1;
+const currentYear = new Date().getFullYear();
+const startYear = 2015;
+
+const formRef = ref(null);
+const size = ref('medium');
+const formValue = ref({
+    qrCode: "",
+    month: "",
+    year: "",
+    accountBankName: "",
+    accountNumber: "",
+    accountName: "",
+})
+
+const monthOptions =  ref(
+    Array.from({ length: 12 }, (_, index) => ({
+        label: (index + 1).toString(),
+        value: (index + 1).toString(),
+    }))
+);
+
+const yearOptions = ref(
+  Array.from(
+    { length: currentYear - startYear + 1 },
+    (_, index) => {
+      const year = (currentYear - index).toString();
+      return {
+        label: year,
+        value: year,
+      };
+    }
+  )
+);
+
+const loading = ref(false);
+const isImageChanged = ref(false);
+
+const initCurrentPayment = ref({});
+
+
+const rules = Rules.Payment;
+
+
+const isTheSameMonthAndYear = (month1, year1, month2, year2) => {
+    if(month1 == month2 && year1 == year2) {
+        return true;
+    }
+    return false;
+    
+}
+
+async function handleEdit () {
+
+    //1. check validate input
+    const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
+    if(invalidField.length > 0) {
+        message.error("ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຖືກຕ້ອງ")
+        console.log("invalidField", invalidField);
+        return;
+    }
+
+    //2. check image
+    if(fileList.value.length === 0) {
+        message.error("ກະລຸນາໃສ່ຮູບພາບ")
+        return;
+    }
+
+    loading.value = true;
+
+    const resGetOneByMonthAndYear = await getOneByMonthAndYear(formValue.value.month, formValue.value.year);
+    console.log("resGetOneByMonthAndYear", resGetOneByMonthAndYear);
+    if(!resGetOneByMonthAndYear) {
+        loading.value = false;
+        return;
+    }
+
+    const isTheSameMAndY = isTheSameMonthAndYear(formValue.value.month, formValue.value.year, initCurrentPayment.value.payment_month, initCurrentPayment.value.payment_year);
+
+    if((resGetOneByMonthAndYear.length > 0) && !isTheSameMAndY) {
+        message.error(`ເດືອນ ${formValue.value.month} ໃນປີ ${formValue.value.year} ຖືກສ້າງຂຶ້ນແລ້ວ`)
+        loading.value = false;
+        return;
+    }
+
+
+    if(isImageChanged.value) {
+        formValue.value.qrCode = fileList.value[0].file;
+        const resUpdate = await updateWithImage(id, formValue.value);
+        if(!resUpdate) {
+            loading.value = false;
+            return
+        }
+        loading.value = false;
+        await navigateTo('/payment');
+    } else {
+        const resUpdate = await update(id, formValue.value);
+        if(!resUpdate) {
+            loading.value = false;
+            return;
+        }
+        loading.value = false;
+        await navigateTo('/payment');
+    }
+
+    return;
+
+
+}
+
+const getCurrentPayment = async () => {
+    const resGetOne = await getOne(id);
+    if(!resGetOne) {
+        return;
+    }
+    formValue.value.month = resGetOne.payment_month + "";
+    formValue.value.year = resGetOne.payment_year + "";
+    formValue.value.accountBankName = resGetOne.payment_account_bank_name;
+    formValue.value.accountNumber = resGetOne.payment_account_number;
+    formValue.value.accountName = resGetOne.payment_account_name;
+    formValue.value.qrCode = resGetOne.payment_qr_code;
+
+    initCurrentPayment.value = resGetOne;
+
+    const imageUrl = getUrl(resGetOne.payment_qr_code, 200);
+
+    if(!imageUrl) {
+        return;
+    }
+
+
+    fileList.value = [{
+        id: '1',
+        name: 'qr_code_image.png',
+        status: 'pending',
+        url: imageUrl
+    }]
+
+}
+
+onMounted(async () => {
+    loading.value = true;
+    await getCurrentPayment();
+    loading.value = false;
+})
+
+
+</script>

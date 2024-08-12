@@ -16,13 +16,13 @@
         </div>
         <div class="w-full grid grid-cols-3">
             <div>
-                <nuxt-link to="/staff" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
+                <nuxt-link to="/customer" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
                     <Icon name="mingcute:left-fill" class="text-gray-500" size="20" />
                     <p class="text-lg font-normal text-gray-600">ກັບຄືນ</p>
                 </nuxt-link>
             </div>
             <div class="flex justify-center items-center">
-                <p class="text-xl font-medium text-gray-600">ເພີ່ມຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ</p>
+                <p class="text-xl font-medium text-gray-600">ແກ້ໄຂຂໍ້ມູນຜູ້ເຊົ່າ</p>
             </div>
             <div></div>
         </div>
@@ -35,7 +35,7 @@
                         class="w-full flex justify-center items-center"
                         :max="1"
                         :default-upload="false"
-                        :default-file-list="fileList"
+                        :file-list="fileList"
                         list-type="image-card"
                     />
             <n-form
@@ -45,10 +45,18 @@
             :rules="rules"
             :size="size"
             >
-                <n-form-item label="ຊື່" path="username">
+                <n-form-item label="ຊື່" path="firstname">
                     <n-input 
                     placeholder="ປ້ອນຊື່..." 
-                    v-model:value="formValue.username"
+                    v-model:value="formValue.firstname"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ນາມສະກຸນ" path="lastname">
+                    <n-input 
+                    placeholder="ປ້ອນນາມສະກຸນ..." 
+                    v-model:value="formValue.lastname"
                     @keydown.enter.prevent
                     :disabled="loading"
                     />
@@ -61,11 +69,43 @@
                     :disabled="loading"
                     />
                 </n-form-item>
-                <n-form-item label="ສິດ" path="role">
+                <n-form-item label="ເພດ" path="gender">
                     <n-select 
                     placeholder="--ເລືອກ--"
-                    v-model:value="formValue.role" 
-                    :options="roleOptions" 
+                    v-model:value="formValue.gender" 
+                    :options="genderOptions" 
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ເລກບັດປະຈຳໂຕ" path="identificationId">
+                    <n-input 
+                    placeholder="ປ້ອນເລກບັດປະຈຳໂຕ..." 
+                    v-model:value="formValue.identificationId"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ແຂວງ" path="province">
+                    <n-input 
+                    placeholder="ປ້ອນແຂວງ..." 
+                    v-model:value="formValue.province"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ເມືອງ" path="district">
+                    <n-input 
+                    placeholder="ປ້ອນເມືອງ..." 
+                    v-model:value="formValue.district"
+                    @keydown.enter.prevent
+                    :disabled="loading"
+                    />
+                </n-form-item>
+                <n-form-item label="ບ້ານ" path="village">
+                    <n-input 
+                    placeholder="ປ້ອນເມືອງ..." 
+                    v-model:value="formValue.village"
+                    @keydown.enter.prevent
                     :disabled="loading"
                     />
                 </n-form-item>
@@ -88,12 +128,12 @@
             </n-form>
 
             <div class="flex justify-center gap-4 mt-14 mb-4">
-                <NuxtLink to="/staff">
+                <NuxtLink to="/customer">
                     <n-button :disabled="loading" tertiary color="#002749" size="medium" class="w-40 shadow font-normal">
                         ຍົກເລີກ
                     </n-button>
                 </NuxtLink>
-                <n-button @click="handleAdd" :loading="loading" type="primary" class="w-40 shadow font-normal text-white" size="medium">
+                <n-button @click="handleEdit" :loading="loading" type="primary" class="w-40 shadow font-normal text-white" size="medium">
                     ບັນທຶກ
                 </n-button>
             </div>
@@ -110,13 +150,17 @@
 import { onMounted } from 'vue';
 import Rules from '../../utils/rule/index.js';
 
-const { getOneByGmail, getOneByPhoneNumber, add } = useStaff();
+const { add, getOneByGmail, getOne, update, updateWithImage } = useCustomer();
+const { getUrl } = useFile();
+
 import { useMessage } from "naive-ui";
 import Models from "~/model";
 const message = useMessage();
 
 const showModal = ref(false);
 const previewImageUrl = ref("");
+
+const { id } = useRoute().params;
 
 
 
@@ -126,6 +170,7 @@ const fileList = ref([
 const handleUploadChange = (options) => {
     const { file, event } = options;
     if(file.status === "removed") {
+        isImageChanged.value = true;
         fileList.value = [];
         return;
     }
@@ -135,47 +180,58 @@ const handleUploadChange = (options) => {
         message.error("ອັບໂຫຼດແຕ່ສະເພາະຮູບທຳນັ້ນ");
     }
 
+    isImageChanged.value = true;
     fileList.value = [file];
 };
 
 
 const items = [
     {
-        title: 'ຜູ້ໃຊ້ລະບົບ',
+        title: 'ຜູ້ເຊົ່າ',
         disabled: false,
-        href: '/staff',
+        href: '/customer',
     },
     {
-        title: 'ເພີ່ມຜູ້ໃຊ້ລະບົບ',
+        title: 'ແກ້ໄຂຜູ້ເຊົ່າ',
         disabled: true,
-        href: '/staff/add',
+        href: '/customer/edit',
     },
 ];
 
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    profile: "test",
-    username: "southixa",
-    phone: "557484938",
-    role: "user",
-    email: "southixa.pele10@gmail.com",
-    password: "12345678",
+    profile: "",
+    firstname: "",
+    lastname: "",
+    phone: "",
+    gender: "",
+    identificationId: "",
+    province: "",
+    district: "",
+    village: "",
+    email: "",
+    password: "",
 })
 
-const roleOptions =  ref([
+const genderOptions =  ref([
     {
-        label: 'admin',
-        value: 'user'
+        label: 'ຊາຍ',
+        value: 'ຊາຍ',
+    },
+    {
+        label: 'ຍິງ',
+        value: 'ຍິງ'
     },
 ]);
 
 const loading = ref(false);
+const isImageChanged = ref(false);
 
 
-const rules = Rules.Staff;
+const rules = Rules.Customer;
 
-async function handleAdd () {
+async function handleEdit () {
 
     //1. check validate input
     const invalidField = await formRef.value?.validate().catch((error)=>{return error;})
@@ -199,35 +255,74 @@ async function handleAdd () {
         loading.value = false;
         return;
     }
-    if(resGetOneByGmail.length > 0) {
+    if(resGetOneByGmail.length > 0 && resGetOneByGmail[0].customer_id !== id) {
         message.error("ອີເມວນີ້ຖືກໃຊ້ແລ້ວ")
         loading.value = false;
         return;
     }
 
-    // check phoneNumber
-    const resGetOneByPhoneNumber = await getOneByPhoneNumber(formValue.value.phone);
-    console.log("resGetOneByPhoneNumber", resGetOneByPhoneNumber);
-    if(!resGetOneByPhoneNumber) {
+
+    if(isImageChanged.value) {
+        formValue.value.profile = fileList.value[0].file;
+        const resUpdate = await updateWithImage(id, formValue.value);
+        if(!resUpdate) {
+            loading.value = false;
+            return;
+        }
         loading.value = false;
-        return;
-    }
-    if(resGetOneByPhoneNumber.length > 0) {
-        message.error("ເບີໂທນີ້ຖືກໃຊ້ແລ້ວ")
+        await navigateTo('/customer');
+    } else {
+        const resUpdate = await update(id, formValue.value);
+        if(!resUpdate) {
+            loading.value = false;
+            return;
+        }
         loading.value = false;
-        return;
+        await navigateTo('/customer');
     }
 
-    formValue.value.profile = fileList.value[0].file;
-
-    const resAddStaff = await add(formValue.value);
-    if(!resAddStaff) {
-        loading.value = false;
-        return;
-    }
-    loading.value = false;
-    await navigateTo('/staff');
+    return;
 }
+
+
+const getCurrentCustomer = async () => {
+    const resGetOne = await getOne(id);
+    if(!resGetOne) {
+        return;
+    }
+    formValue.value.profile = resGetOne.customer_profile;
+    formValue.value.firstname = resGetOne.customer_firstname;
+    formValue.value.lastname = resGetOne.customer_lastname;
+    formValue.value.phone = resGetOne.customer_phone;
+    formValue.value.gender = resGetOne.customer_gender;
+    formValue.value.identificationId = resGetOne.customer_identification_id;
+    formValue.value.province = resGetOne.customer_province;
+    formValue.value.district = resGetOne.customer_district;
+    formValue.value.village = resGetOne.customer_village;
+    formValue.value.email = resGetOne.customer_gmail;
+    formValue.value.password = resGetOne.customer_password;
+
+    const imageUrl = getUrl(resGetOne.customer_profile, 200);
+
+    if(!imageUrl) {
+        return;
+    }
+
+
+    fileList.value = [{
+        id: '1',
+        name: 'profile_image.png',
+        status: 'pending',
+        url: imageUrl
+    }]
+
+}
+
+onMounted(async () => {
+    loading.value = true;
+    await getCurrentCustomer();
+    loading.value = false;
+})
 
 
 </script>

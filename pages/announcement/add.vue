@@ -16,19 +16,19 @@
         </div>
         <div class="w-full grid grid-cols-3">
             <div>
-                <nuxt-link to="/staff" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
+                <nuxt-link to="/announcement" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100 w-fit">
                     <Icon name="mingcute:left-fill" class="text-gray-500" size="20" />
                     <p class="text-lg font-normal text-gray-600">ກັບຄືນ</p>
                 </nuxt-link>
             </div>
             <div class="flex justify-center items-center">
-                <p class="text-xl font-medium text-gray-600">ເພີ່ມຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ</p>
+                <p class="text-xl font-medium text-gray-600">ເພີ່ມຂໍ້ມູນແຈ້ງການ</p>
             </div>
             <div></div>
         </div>
         <div class="w-[500px] bg-white shadow-md border border-gray-50 mx-auto mt-4 rounded-md mb-20 p-4">
             
-            <p>ຮູບ</p>
+            <p>ຮູບແຈ້ງການ</p>
             
                     <n-upload
                         @change="handleUploadChange"
@@ -45,42 +45,19 @@
             :rules="rules"
             :size="size"
             >
-                <n-form-item label="ຊື່" path="username">
+                <n-form-item label="ຫົວຂໍ້" path="title">
                     <n-input 
-                    placeholder="ປ້ອນຊື່..." 
-                    v-model:value="formValue.username"
+                    placeholder="ປ້ອນຫົວຂໍ້..." 
+                    v-model:value="formValue.title"
                     @keydown.enter.prevent
                     :disabled="loading"
                     />
                 </n-form-item>
-                <n-form-item label="ເບີໂທ" path="phone">
+                <n-form-item label="ລາຍລະອຽດ" path="detail">
                     <n-input 
-                    placeholder="ປ້ອນເບີໂທ..." 
-                    v-model:value="formValue.phone"
-                    @keydown.enter.prevent
-                    :disabled="loading"
-                    />
-                </n-form-item>
-                <n-form-item label="ສິດ" path="role">
-                    <n-select 
-                    placeholder="--ເລືອກ--"
-                    v-model:value="formValue.role" 
-                    :options="roleOptions" 
-                    :disabled="loading"
-                    />
-                </n-form-item>
-                <n-form-item label="ອີເມວ" path="email">
-                    <n-input 
-                    placeholder="ປ້ອນອີເມວ..." 
-                    v-model:value="formValue.email"
-                    @keydown.enter.prevent
-                    :disabled="loading"
-                    />
-                </n-form-item>
-                <n-form-item label="ລະຫັດຜ່ານ" path="password">
-                    <n-input 
-                    placeholder="ປ້ອນລະຫັດຜ່ານ..." 
-                    v-model:value="formValue.password"
+                    type="textarea"
+                    placeholder="ປ້ອນລາຍລະອຽດ..." 
+                    v-model:value="formValue.detail"
                     @keydown.enter.prevent
                     :disabled="loading"
                     />
@@ -88,7 +65,7 @@
             </n-form>
 
             <div class="flex justify-center gap-4 mt-14 mb-4">
-                <NuxtLink to="/staff">
+                <NuxtLink to="/announcement">
                     <n-button :disabled="loading" tertiary color="#002749" size="medium" class="w-40 shadow font-normal">
                         ຍົກເລີກ
                     </n-button>
@@ -110,7 +87,8 @@
 import { onMounted } from 'vue';
 import Rules from '../../utils/rule/index.js';
 
-const { getOneByGmail, getOneByPhoneNumber, add } = useStaff();
+const { getOneByGmail } = useCustomer();
+const { add } = useAnnouncement();
 import { useMessage } from "naive-ui";
 import Models from "~/model";
 const message = useMessage();
@@ -141,39 +119,29 @@ const handleUploadChange = (options) => {
 
 const items = [
     {
-        title: 'ຜູ້ໃຊ້ລະບົບ',
+        title: 'ແຈ້ງການ',
         disabled: false,
-        href: '/staff',
+        href: '/announcement',
     },
     {
-        title: 'ເພີ່ມຜູ້ໃຊ້ລະບົບ',
+        title: 'ເພີ່ມແຈ້ງການ',
         disabled: true,
-        href: '/staff/add',
+        href: '/announcement/add',
     },
 ];
 
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    profile: "test",
-    username: "southixa",
-    phone: "557484938",
-    role: "user",
-    email: "southixa.pele10@gmail.com",
-    password: "12345678",
+    thumbnail: "test",
+    title: "southixa",
+    detail: "philavong",
 })
-
-const roleOptions =  ref([
-    {
-        label: 'admin',
-        value: 'user'
-    },
-]);
 
 const loading = ref(false);
 
 
-const rules = Rules.Staff;
+const rules = Rules.Announment;
 
 async function handleAdd () {
 
@@ -193,40 +161,15 @@ async function handleAdd () {
 
     loading.value = true;
 
-    const resGetOneByGmail = await getOneByGmail(formValue.value.email);
-    console.log("resGetOneByGmail", resGetOneByGmail);
-    if(!resGetOneByGmail) {
-        loading.value = false;
-        return;
-    }
-    if(resGetOneByGmail.length > 0) {
-        message.error("ອີເມວນີ້ຖືກໃຊ້ແລ້ວ")
-        loading.value = false;
-        return;
-    }
+    formValue.value.thumbnail = fileList.value[0].file;
 
-    // check phoneNumber
-    const resGetOneByPhoneNumber = await getOneByPhoneNumber(formValue.value.phone);
-    console.log("resGetOneByPhoneNumber", resGetOneByPhoneNumber);
-    if(!resGetOneByPhoneNumber) {
-        loading.value = false;
-        return;
-    }
-    if(resGetOneByPhoneNumber.length > 0) {
-        message.error("ເບີໂທນີ້ຖືກໃຊ້ແລ້ວ")
-        loading.value = false;
-        return;
-    }
-
-    formValue.value.profile = fileList.value[0].file;
-
-    const resAddStaff = await add(formValue.value);
-    if(!resAddStaff) {
+    const resAddAnnouncement = await add(formValue.value);
+    if(!resAddAnnouncement) {
         loading.value = false;
         return;
     }
     loading.value = false;
-    await navigateTo('/staff');
+    await navigateTo('/announcement');
 }
 
 

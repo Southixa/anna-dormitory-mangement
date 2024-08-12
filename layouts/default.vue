@@ -1,120 +1,146 @@
 <template>
-    <div class="w-full bg-gray-200 min-h-screen flex relative">
-      <nav class="h-full w-72 bg-primary p-5 fixed top-0 left-0">
-        <div class="h-full w-full">
-          <div class="w-full h-16 flex items-center">
-            <div class="w-16 h-16">
-              <img src="~/assets/image/logo/logo_white_bg.png" alt="">
+    <div class="w-screen h-screen bg-white flex">
+        <div class="min-w-[220px] max-w-[220px] h-screen"></div>
+        <div class="min-w-[220px] max-w-[220px] h-screen bg-white fixed shadow-xl p-4 z-10">
+            <div class="w-full flex gap-4 items-center mb-12">
+                <div class="w-10 h-10 bg-gray-400 rounded-full">
+                </div>
+                <p class="text-gray-700">ເວັບໄຊຈັດການຫໍພັກແອນນາ</p>
             </div>
-            <div class="p-4 grow">
-              <p class="text-white text-xl font-bold">Sangsavanh</p>
+            <NuxtLink v-if="isCurrentNav('/')" to="/">
+                <div class="w-full bg-[#18a058] flex items-center rounded-lg overflow-hidden hover:shadow-[#18a058] shadow-sm">
+                    <div class="w-10 h-10  flex justify-center items-center">
+                        <Icon name="tabler:home" size="20" color="white" />
+                    </div>
+                    <p class="text-white font-medium">ໜ້າຫຼັກ</p>
+                </div>
+            </NuxtLink>
+            <NuxtLink v-else to="/">
+                <div class="w-full flex items-center rounded-lg overflow-hidden hover:bg-gray-100 transition-all ease-in-out duration-200">
+                    <div class="w-10 h-10  flex justify-center items-center">
+                        <Icon name="tabler:home" size="20" color="#9ca3af" />
+                    </div>
+                    <p class="text-gray-500">ໜ້າຫຼັກ</p>
+                </div>
+            </NuxtLink>
+            <p class="text-gray-400 mt-4 text-sm mb-2">ຈັດການຂໍ້ມູນຫຼັກ</p>
+            <div class="cursor-pointer w-full flex justify-between items-center rounded-lg overflow-hidden hover:bg-gray-100 transition-all ease-in-out duration-200 mb-2" @click="navIsOpen = !navIsOpen">
+                <div class="flex items-center">
+                    <div class="w-10 h-10  flex justify-center items-center">
+                        <Icon name="mingcute:user-setting-line" size="20" color="gray" />
+                    </div>
+                    <p class="text-gray-500 font-normal">ຈັດການຂໍ້ມູນຜູ້ເຊົ່າ</p>
+                </div>
+                <div class="w-10 h-10 flex justify-center items-center">
+                    <Icon v-if="!navIsOpen" name="mingcute:down-fill" size="20" class="text-gray-400" />
+                    <Icon v-else name="mingcute:up-fill" size="20" class="text-gray-400" />
+                </div>
             </div>
-          </div>
-          <div class="w-full h-[300px] mt-16">
+            <div class="w-full mb-4" :class="[navIsOpen ? 'flex' : 'hidden']">
+                <div class="grow">
+                    <NuxtLink v-for="(item, index) in navItems" :key="index" :to="item.path">
+                        <div v-if="isCurrentNav(item.path)" class="grow h-10 flex items-center rounded-md overflow-hidden bg-[#18a058] hover:opacity-80 transition-all ease-in-out duration-200 mb-2">
+                            <div class="w-3">
+                            </div>
+                            <div class="w-10 h-10 flex justify-center items-center">
+                                <div class="w-3 h-[3px] bg-gray-300 rounded-full"></div>
+                            </div>
+                            <p class="text-white font-normal text-sm">{{ item.name }}</p>
+                        </div>
+                        <div v-else class="grow h-10 flex items-center rounded-md overflow-hidden hover:bg-gray-100 transition-all ease-in-out duration-200 mb-2">
+                            <div class="w-3">
+                            </div>
+                            <div class="w-10 h-10 flex justify-center items-center">
+                                <div class="w-3 h-[3px] bg-gray-300 rounded-full"></div>
+                            </div>
+                            <p class="text-gray-500 font-normal text-sm">{{ item.name }}</p>
+                        </div>
+                    </NuxtLink>
+                </div>
+            </div>
+            <NuxtLink v-if="isCurrentNav('/staff')" to="/staff">
+                <div class="w-full flex items-center rounded-lg overflow-hidden bg-[#18a058] hover:opacity-80 transition-all ease-in-out duration-200 mb-2">
+                    <div class="w-10 h-10  flex justify-center items-center">
+                        <Icon name="octicon:person-24" size="20" class="text-white"/>
+                    </div>
+                    <p class="text-white font-medium">ຂໍ້ມູນຜູ້ໃຊ້</p>
+                </div>
+            </NuxtLink>
+            <NuxtLink v-else to="/staff">
+                <div class="w-full flex items-center rounded-lg overflow-hidden hover:bg-gray-100 transition-all ease-in-out duration-200 mb-2">
+                    <div class="w-10 h-10  flex justify-center items-center">
+                        <Icon name="octicon:person-24" size="20" class="text-gray-500"/>
+                    </div>
+                    <p class="text-gray-500 font-medium">ຂໍ້ມູນຜູ້ໃຊ້</p>
+                </div>
+            </NuxtLink>
+            <div @click="showModal = true" class="cursor-pointer w-full bg-red-500 flex items-center rounded-lg overflow-hidden shadow-red-200 shadow-md">
+                <div class="w-10 h-10  flex justify-center items-center">
+                    <Icon name="ci:exit" size="20" color="white" />
+                </div>
+                <p class="text-white font-medium">ອອກຈາກລະບົບ</p>
+                <n-modal
+                    v-model:show="showModal"
+                    preset="dialog"
+                    title="ຢືນຢັນການອອກຈາກລະບົບ"
+                    content="ອອກຈາກລະບົບ?"
+                    positive-text="ຕົກລົງ"
+                    negative-text="ຍົກເລີກ"
+                    @positive-click="onPositiveClick"
+                    @negative-click="onNegativeClick"
+                />
+            </div>
+        </div>
+        <div class="grow px-4">
+            <div class="max-w-screen-xl mx-auto">
+                <div class="w-full bg-white shadow-md rounded-md mt-2 flex justify-between items-center px-2 py-1">
+                    <div class="flex items-center">
+                        <p class="text-gray-800 font-medium">Anna Dormitory Management System</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gray-100 rounded-full flex justify-center items-center">
 
-            <NavManu v-for="item in navMenuList" :key="item.name" :name="item.name" :icon="item.icon" :size="item.size" :path="item.path" :active="getRouteName() == item.path"/>
-
-          </div>
-        </div>
-      </nav>
-      <div class="h-full min-w-72">
-      </div>
-      <div class="grow bg-gray-100">
-        <div class="w-full bg-white shadow-sm flex items-center justify-between px-4 py-2">
-          <div class="w-8 h-8 flex justify-center items-center">
-            <Icon name="fa:navicon" size="24" class="text-gray-500"></Icon>
-          </div>
-          <div class="  flex gap-3 items-center">
-            <p class="font-normal text-gray-800">Admin</p>
-            <div class="w-12 h-12 rounded-full">
-              <img src="~/assets/image/avatar/avatar1.png" alt="" class="w-full h-full object-cover">
+                    </div>
+                </div>
             </div>
-          </div>
+            <slot />
         </div>
-        <div class="px-6">
-          <div class="max-w-screen-2xl mx-auto my-4">
-            <h2 class="font-bold text-xl text-gray-900">{{ getPageTitle() }}</h2>
-            <p class="font-light text-normal text-gray-600 mt-1">{{ getPageName() }}</p>
-          </div>
-          <div>
-            <slot />  
-          </div>
-        </div>
-        
-      </div>
     </div>
-  </template>
+</template>
 
 <script setup>
-const navMenuList = [
-  {
-    name: 'ລາຍງານ',
-    icon: 'entypo:bar-graph',
-    size: '24',
-    path: '/dashboard',
-    pageTitle: 'ລາຍງານສະພາບລວມ'
-  },
-  {
-    name: 'ຂໍ້ມູນຜູ້ໃຊ້',
-    icon: 'bi:people-fill',
-    size: '24',
-    path: '/user',
-    pageTitle: 'ຈັດການຂໍ້ມູນຜູ້ໃຊ້ເວັບໄຊ'
-  },
-  {
-    name: 'ຂໍ້ມູນນັກສຶກສາ',
-    icon: 'ph:student-fill',
-    size: '24',
-    path: '/student',
-    pageTitle: 'ຈັດການຂໍ້ມູນນັກສຶກສາ'
-  },
-  {
-    name: 'ຂໍ້ມູນສາຂາຮຽນ',
-    icon: 'vaadin:connect',
-    size: '22',
-    path: '/major',
-    pageTitle: 'ຈັດການຂໍ້ມູນສາຂາຮຽນ'
-  },
-  {
-    name: 'ຂໍ້ມູນບົດຈົບ',
-    icon: 'ri:book-fill',
-    size: '24',
-    path: '/thesis',
-    pageTitle: 'ຈັດການບົດຈົບທັງໝົດ'
-  },
-  {
-    name: 'ຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ',
-    icon: 'clarity:administrator-solid',
-    size: '24',
-    path: '/staff',
-    pageTitle: 'ຈັດການຂໍ້ມູນຜູ້ໃຊ້ງານລະບົບ'
-  },
-  {
-    name: 'ອອກຈາກລະບົບ',
-    icon: 'lucide:log-out',
-    size: '24',
-    path: '/login',
-    pageTitle: 'ເຂົ້າສູ່ລະບົບ'
-  }
+import { onBeforeRouteUpdate } from 'vue-router';
+
+
+const navIsOpen = ref(false);
+const showModal = ref(false)
+
+const onPositiveClick = () => {
+    showModal.value = false
+    navigateTo('/login')
+}
+const onNegativeClick = () => {
+    showModal.value = false
+}
+
+const isCurrentNav = (path) => {
+    const fullRoute = useRoute().path;
+    let routeName = fullRoute.split('/')[1];
+    if(routeName == "") {
+        routeName = "/";
+    } else {
+        routeName = "/" + routeName;
+    };
+    return routeName === path;
+}
+
+
+const navItems = [
+    { name: "ຂໍ້ມູນຜູ້ເຊົ່າ", path: "/customer" },
+    { name: "ຂໍ້ມູນຫ້ອງເຊົ່າ", path: "/room" },
+    { name: "ຂໍ້ມູນການເຊົ່າ", path: "/renting" },
+    { name: "ຂໍ້ມູນແຈ້ງການ", path: "/announcement" },
+    { name: "ຂໍ້ມູນຜູ້ເຊົ່າສົ່ງລາຍງານ", path: "/issue-report" },
+    { name: "ຂໍ້ມູນການຊຳລະເງິນ", path: "/payment" },
 ]
-
-function getRouteName() {
-  const fullRoute = useRoute().path;
-  const routeName = fullRoute.split('/')[1];
-  if(routeName == "") return navMenuList[0].path;
-  return "/" + routeName;
-}
-
-function getPageTitle() {
-  const routeName = getRouteName();
-  const pageTitle = navMenuList.find(x => x.path == routeName).pageTitle;
-  return pageTitle;
-}
-
-function getPageName() {
-  const routeName = getRouteName();
-  const pageName = navMenuList.find(x => x.path == routeName).name;
-  return pageName;
-}
 
 </script>

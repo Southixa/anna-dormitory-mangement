@@ -1,15 +1,32 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 //import tailwindConfig from "./tailwind.config"
+import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 
 export default defineNuxtConfig({
   devtools: { enabled: true },
+  build: {
+    transpile: ['vuetify'],
+  },
   modules: [
     '@nuxtjs/tailwindcss',
     '@nuxtjs/google-fonts',
     '@bg-dev/nuxt-naiveui',
     '@nuxtjs/apollo',
-    'nuxt-icon'
+    'nuxt-icon',
+    (_options, nuxt) => {
+      nuxt.hooks.hook('vite:extendConfig', (config) => {
+        // @ts-expect-error
+        config.plugins.push(vuetify({ autoImport: true }))
+      })
+    },
   ],
+  vite: {
+    vue: {
+      template: {
+        transformAssetUrls,
+      },
+    },
+  },
   googleFonts: {
     families: {
       'Noto Sans Lao': {
@@ -27,50 +44,36 @@ export default defineNuxtConfig({
   css: ['@/assets/main.css'],
   tailwindcss: {
     exposeConfig: true,
-    config: {
-        theme: {
-          extend: {
-            colors: {
-              'primary': '#002749',
-            }
-          }
-        }
-    },
-  },
-  apollo: {
-    autoImports: true,
-    clients: {
-      default: {
-        httpEndpoint: process.env.NHOST_GRAPHQL_URL + '',
-        browserHttpEndpoint: '',
-        wsEndpoint: '',
-        httpLinkOptions: {},
-        wsLinkOptions: {},
-        websocketsOnly: false,
-        connectToDevTools: false,
-        defaultOptions: {
-          watchQuery: {
-            fetchPolicy: 'no-cache',
-          },
-          query: {
-            fetchPolicy: 'no-cache',
-          },
-        },
-        inMemoryCacheOptions: {},
-        tokenName: 'token',
-        tokenStorage: 'cookie',
-        authType: 'Bearer',
-        authHeader: 'Authorization'
-      },
-    }
-  },
-  app: {
-    pageTransition: { name: 'page', mode: 'out-in' }
+    // config: {
+    //     theme: {
+    //       extend: {
+    //         colors: {
+    //           'primary': '#002749',
+    //         }
+    //       }
+    //     }
+    // },
   },
   runtimeConfig: {
     public: { // For client-side access
       NHOST_SUBDOMAIN: process.env.NHOST_SUBDOMAIN + "",
       NHOST_REGION: process.env.NHOST_REGION + "",
+      motion: {
+        directives: {
+          'pop-bottom': {
+            initial: {
+              scale: 0,
+              opacity: 0,
+              y: 100,
+            },
+            visible: {
+              scale: 1,
+              opacity: 1,
+              y: 0,
+            }
+          }
+        }
+      }
     },
   },
   ssr: false
