@@ -15,7 +15,7 @@
                     </template>
                 </n-input>
             </div>
-            <div class="col-start-12 col-span-2 w-full flex items-end text-white">
+            <div class="col-start-11 col-span-2 w-full flex items-end justify-end text-white">
                 <NuxtLink to="/staff/add">
                     <n-button color="#18a058">
                         <template #icon>
@@ -23,7 +23,7 @@
                                 <add-icon />
                             </n-icon>
                         </template>
-                        ເພີ່ມຜູ້ເຊົ່າ
+                        ເພີ່ມຜູ້ໃຊ້ລະບົບ
                     </n-button>
                 </NuxtLink>
             </div>

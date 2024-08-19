@@ -108,10 +108,10 @@ const items = [
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    number: "4",
-    buildingName: "B",
-    price: "400000",
-    quantity: "5",
+    number: "",
+    buildingName: "",
+    price: "",
+    quantity: "",
 })
 
 const loading = ref(false);

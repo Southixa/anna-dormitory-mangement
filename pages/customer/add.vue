@@ -195,17 +195,17 @@ const items = [
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    profile: "test",
-    firstname: "southixa",
-    lastname: "philavong",
-    phone: "557484938",
+    profile: "",
+    firstname: "",
+    lastname: "",
+    phone: "",
     gender: "ຊາຍ",
-    identificationId: "325234342342343",
-    province: "vientiane",
-    district: "nasaiythong",
-    village: "sekert",
-    email: "southixa.pele10@gmail.com",
-    password: "12345678",
+    identificationId: "",
+    province: "",
+    district: "",
+    village: "",
+    email: "",
+    password: "",
 })
 
 const genderOptions =  ref([

@@ -13,9 +13,9 @@ export const useNhost = () => {
       })
     })
 
-    if(nhostState.value?.auth?.getSession() == null) {
-        nhostState.value.graphql.setAccessToken(cookie.value)
-    }
+    // if(nhostState.value?.auth?.getSession() == null) {
+    //     nhostState.value.graphql.setAccessToken(cookie.value)
+    // }
   
     return { nhost: nhostState.value }
   }

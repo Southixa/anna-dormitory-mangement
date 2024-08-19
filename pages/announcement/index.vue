@@ -23,7 +23,7 @@
                                 <add-icon />
                             </n-icon>
                         </template>
-                        ເພີ່ມຜູ້ເຊົ່າ
+                        ເພີ່ມແຈ້ງການ
                     </n-button>
                 </NuxtLink>
             </div>

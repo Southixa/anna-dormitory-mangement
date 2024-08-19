@@ -133,9 +133,9 @@ const items = [
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    thumbnail: "test",
-    title: "southixa",
-    detail: "philavong",
+    thumbnail: "",
+    title: "",
+    detail: "",
 })
 
 const loading = ref(false);

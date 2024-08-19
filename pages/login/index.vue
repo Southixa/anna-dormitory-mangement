@@ -1,6 +1,6 @@
 <template>
-    <div class="bg-[#f4f5fa] w-full h-screen flex justify-center items-center">
-        <div class="w-[500px] h-[500px] bg-white shadow-xl rounded-md p-8">
+    <div class="bg-[#f4f5fa] background-image w-full h-screen flex justify-center items-center">
+        <div class="w-[500px] h-[500px] bg-white shadow-xl rounded-md p-8 z-10">
             <h1 class="text-center font-semibold text-xl text-gray-700">ລະບົບຈັດການຫໍພັກແອນນາ</h1>
             <h2 class="mt-8 text-xl text-gray-700">ຍິນດີຕ້ອນຮັບ 👋</h2>
             <p class="text-gray-400 mt-2">ກະລຸນາເຂົ້າສູ່ລະບົດດ້ວຍອີເມວ ແລະ ລະຫັດຜ່ານ</p>
@@ -29,6 +29,24 @@
     </div>
 </template>
 
+<style scoped>
+.background-image {
+    background: url('/assets/image/login/login_leaf.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+.background-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 5;
+}
+</style>
+
 <script setup>
 import { EyeOffOutline, EyeOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui';
@@ -43,8 +61,8 @@ definePageMeta({
 })
 
 const user = ref({
-    email: 'southixa.pele@gmail.com',
-    password: '12345678'
+    email: '',
+    password: ''
 })
 
 const loading = ref(false);

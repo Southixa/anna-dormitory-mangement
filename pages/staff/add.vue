@@ -155,12 +155,12 @@ const items = [
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    profile: "test",
-    username: "southixa",
-    phone: "557484938",
+    profile: "",
+    username: "",
+    phone: "",
     role: "user",
-    email: "southixa.pele10@gmail.com",
-    password: "12345678",
+    email: "",
+    password: "",
 })
 
 const roleOptions =  ref([

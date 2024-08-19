@@ -154,12 +154,12 @@ const startYear = 2015;
 const formRef = ref(null);
 const size = ref('medium');
 const formValue = ref({
-    qrCode: "test",
+    qrCode: "",
     month: currentMonth.toString(),
     year: currentYear.toString(),
-    accountBankName: "accountBankName1",
-    accountNumber: "324324234",
-    accountName: "accountName1",
+    accountBankName: "",
+    accountNumber: "",
+    accountName: "",
 })
 
 const monthOptions =  ref(
