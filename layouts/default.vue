@@ -3,7 +3,8 @@
         <div class="min-w-[220px] max-w-[220px] h-screen"></div>
         <div class="min-w-[220px] max-w-[220px] h-screen bg-white fixed shadow-xl p-4 z-10">
             <div class="w-full flex gap-4 items-center mb-12">
-                <div class="w-10 h-10 bg-gray-400 rounded-full">
+                <div class="w-10 h-10 rounded-full overflow-hidden border border-gray-100">
+                    <img src="~/assets/image/logo/anna_icon.png" alt="logo" class="w-full h-full object-contain" />
                 </div>
                 <p class="text-gray-700">ເວັບໄຊຈັດການຫໍພັກແອນນາ</p>
             </div>
@@ -12,7 +13,7 @@
                     <div class="w-10 h-10  flex justify-center items-center">
                         <Icon name="tabler:home" size="20" color="white" />
                     </div>
-                    <p class="text-white font-medium">ໜ້າຫຼັກ</p>
+                    <p class="text-white font-medium">ລາຍງານ</p>
                 </div>
             </NuxtLink>
             <NuxtLink v-else to="/">
@@ -20,7 +21,7 @@
                     <div class="w-10 h-10  flex justify-center items-center">
                         <Icon name="tabler:home" size="20" color="#9ca3af" />
                     </div>
-                    <p class="text-gray-500">ໜ້າຫຼັກ</p>
+                    <p class="text-gray-500">ລາຍງານ</p>
                 </div>
             </NuxtLink>
             <p class="text-gray-400 mt-4 text-sm mb-2">ຈັດການຂໍ້ມູນຫຼັກ</p>

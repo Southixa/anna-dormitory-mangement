@@ -61,8 +61,8 @@ definePageMeta({
 })
 
 const user = ref({
-    email: '',
-    password: ''
+    email: 'southixa.pele@gmail.com',
+    password: '12345678'
 })
 
 const loading = ref(false);

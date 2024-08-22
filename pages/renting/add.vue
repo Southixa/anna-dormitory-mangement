@@ -107,7 +107,7 @@ import { NAvatar, NTag, NText } from "naive-ui";
 const { getAll } = useCustomer();
 const { getAll: getAllRoom } = useRoom();
 const { getUrl } = useFile();
-const { add } = useRenting()
+const { add, getAll: getAllRenting } = useRenting()
 import { useMessage } from "naive-ui";
 import Models from "~/model";
 const message = useMessage();
@@ -281,6 +281,15 @@ async function handleAdd () {
 
 const customersOptions = ref([]);
 const roomsOptions = ref([]);
+const rentings = ref([]);
+
+const checkRoomAlreadyRented = (roomId) => {
+    const alreadyRented = rentings.value.filter((item) => item?.room?.room_id === roomId);
+    if(alreadyRented.length > 0) {
+        return true;
+    }
+    return false;
+}
 
 const getCustomers = async () => {
     const resGetAll = await getAll();
@@ -300,15 +309,28 @@ const getRooms = async () => {
         return;
     }
     const addIndex = resGetAll.map((item, index) => {
-        return { value: item.room_id, label: item.room_number }
+        return { 
+          value: item.room_id, 
+          label: item.room_number, 
+          disabled: checkRoomAlreadyRented(item.room_id)
+         }
     })
     console.log(addIndex);
     roomsOptions.value = addIndex;
 }
 
+const getRentings = async () => {
+    const resGetAll = await getAllRenting();
+    if(!resGetAll){
+        return;
+    }
+    console.log("resGetAll rentings =>", resGetAll);
+    rentings.value = resGetAll;
+}
 
 onMounted( async () => {
     loading.value = true;
+    await getRentings();
     await Promise.all([
         getCustomers(), 
         getRooms()

@@ -75,6 +75,16 @@ const Payment = {
         payment_qr_code
         payment_year
         updated_at
+        payment_details {
+          created_at
+          payment_deatil_total_price
+          payment_detail_id
+          payment_detail_is_approved
+          payment_detail_payment_id
+          payment_detail_renting_id
+          payment_detail_slip
+          updated_at
+        }
       }
     }
   `,

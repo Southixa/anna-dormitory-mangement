@@ -56,6 +56,67 @@
             </div>
         </nuxt-link>
     </div>
+    <div class="w-full mt-4">
+        <p class="text-lg font-semibold text-gray-600">ລາຍງານທັງໝົດ</p>
+        <div class="w-full grid grid-cols-5 gap-4 mt-4">
+            <div class="col-span-1">
+                <nuxt-link to="/report/customer">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານຜູ້ເຊົ່າທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/room">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານຫ້ອງທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/renting-in">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານການເຂົ້າເຊົ່າທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/renting-out">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານການອອກເຊົ່າທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/announcement">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານແຈ້ງການທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/issue-report">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານຜູ້ເຊົ່າລາຍງານທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/payment">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານການຊຳລະເງິນທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+            <div class="col-span-1">
+                <nuxt-link to="/report/staff">
+                    <div class="w-full h-24 bg-red-400 rounded-lg flex justify-center items-center">
+                        <p class="text-white font-semibold text-lg text-center">ລາຍງານຜູ້ໃຊ້ງານລະບົບທັງໝົດ</p>
+                    </div>
+                </nuxt-link>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
