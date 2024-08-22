@@ -7,7 +7,7 @@
             </nuxt-link>
         </div>
         <div class="w-full flex justify-center items-center">
-            <p class="text-xl font-medium text-gray-600">ລາຍງານຜູ້ໃຊ້ທັງໝົດ</p>
+            <p class="text-xl font-medium text-gray-600">ລາຍງານການຊຳລະເງິນທັງໝົດ</p>
         </div>
         <div class="w-full grid grid-cols-12 mt-4">
             <div class="col-start-2 col-span-4">
